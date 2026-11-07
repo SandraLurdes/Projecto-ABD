@@ -1,0 +1,16 @@
+# Bibliotecas usadas pelo notebook Lakehouse_Petroleo_PSI.ipynb
+#
+# O projeto corre no Databricks Free Edition (compute serverless). Todas estas bibliotecas
+# já vêm instaladas no ambiente do Databricks, por isso NÃO é preciso instalá-las.
+# O PySpark (Spark SQL, Delta Lake, MLlib) é fornecido pelo próprio runtime e não deve ser instalado com pip.
+#
+# Se for necessário instalá-las (ex.: um ambiente serverless sem alguma delas), correr numa célula do notebook:
+#   %pip install -r /Workspace/<caminho-do-repo>/requirements.txt
+
+# Leitura das APIs (FRED, Yahoo Finance)
+requests>=2.31
+
+# Conversão Spark -> pandas (toPandas) e gráficos
+pandas>=2.2
+numpy>=1.26
+matplotlib>=3.8
