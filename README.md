@@ -92,7 +92,7 @@ A execução **local** serve só para testar alterações.
 | | Databricks Free Edition (oficial) | Local (testes) |
 |---|---|---|
 | Spark | o do runtime (serverless), nada a instalar | `pyspark` instalado com pip + Java 17 |
-| Tabelas | Delta Lake + Unity Catalog (`workspace.oil_psi`) | Parquet em `./spark-warehouse/oil_psi.db/` (ignorada pelo git) |
+| Tabelas | Delta Lake + Unity Catalog (`workspace.oil_psi`) | Parquet em `./lakehouse_oil_psi/warehouse/oil_psi.db/` (ignorada pelo git) |
 | Ficheiros (landing, seed) | Volume `/Volumes/workspace/oil_psi/lake` | pasta `./lakehouse_oil_psi/` (ignorada pelo git) |
 | Seeds | copiados automaticamente de `dados_fonte/` (Git folder); senão, *upload* manual | copiados automaticamente de `dados_fonte/` |
 | Células `%sql` | nativas | convertidas automaticamente em `spark.sql(...)` |

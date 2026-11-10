@@ -108,7 +108,9 @@ São 3 leituras (*batches*) das 21 séries:
 - `IS_DATABRICKS = "DATABRICKS_RUNTIME_VERSION" in os.environ`.
 - **No Databricks:** Delta + Unity Catalog, `BASE = /Volumes/workspace/oil_psi/lake`.
 - **Fora do Databricks** (Colab / Spark local):
-  - as tabelas ficam em Parquet e `BASE = ./lakehouse_oil_psi`;
+  - as tabelas ficam em Parquet em `./lakehouse_oil_psi/warehouse/` e `BASE = ./lakehouse_oil_psi`;
+  - o catálogo é em memória, por isso o `RESET` apaga também as pastas Parquet das tabelas (o `DROP TABLE` não as encontra num kernel
+    novo);
   - o `MERGE` é substituído por *anti-join + union*;
   - o notebook define um `display()` simples;
   - o notebook prepara sozinho o ambiente: `PYSPARK_PYTHON`, deteção do `JAVA_HOME` (macOS/Windows) e uma *cell magic* `sql` com

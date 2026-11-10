@@ -1,0 +1,16 @@
+# Ambiente Python local
+.venv/
+__pycache__/
+.ipynb_checkpoints/
+
+# Lakehouse gerado na execução local (landing, seeds copiados, tabelas Parquet)
+lakehouse_oil_psi/
+spark-warehouse/
+metastore_db/
+derby.log
+
+# Sistema
+.DS_Store
+
+# Saída de execuções locais com nbconvert
+run_local.ipynb

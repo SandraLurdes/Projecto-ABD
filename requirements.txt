@@ -6,6 +6,8 @@
 #
 # Se for necessário instalá-las (ex.: um ambiente serverless sem alguma delas), correr numa célula do notebook:
 #   %pip install -r /Workspace/<caminho-do-repo>/requirements.txt
+#
+# Para correr LOCALMENTE (testes), usar o requirements-local.txt (inclui o PySpark e o Jupyter).
 
 # Leitura das APIs (FRED, Yahoo Finance)
 requests>=2.31
