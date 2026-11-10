@@ -27,6 +27,8 @@ Criar um processo de análise de dados **estruturado e incremental**, que repliq
 4. Como se comportaram os mercados nas grandes crises (2008, 2014-16, COVID-19, guerra na Ucrânia)?
 5. Os movimentos do petróleo ajudam a explicar ou a prever os movimentos do PSI?
 
+As empresas, o sinal esperado por setor e as regras de análise estão em [docs/METODOLOGIA.md](docs/METODOLOGIA.md).
+
 ---
 
 ## Estrutura do repositório
@@ -37,99 +39,138 @@ Projecto-ABD/
 ├── dados_fonte/                   # 21 ficheiros de contingência (seed) com o formato das APIs (snapshot de 07-11-2026)
 │   ├── fred_<série>.csv           # 5 séries FRED (Brent, WTI, EUR/USD, índice OCDE ações PT, IHPC Portugal)
 │   └── yahoo_<símbolo>.json       # 16 séries Yahoo (PSI + 15 empresas)
-├── CLAUDE.md                      # contexto técnico e decisões do grupo
+├── docs/
+│   ├── FONTES.md                  # fontes externas, pedidos às APIs e schema das respostas em bruto
+│   ├── ARQUITETURA.md             # processo medallion, leituras incrementais, reprocessamento, mapa do notebook
+│   ├── TABELAS.md                 # dicionário de dados das tabelas (controlo, bronze, silver, gold) e linhagem
+│   ├── METODOLOGIA.md             # hipótese, empresas e setores, regras estatísticas, limitações
+│   ├── ANALISES.md                # queries, gráficos, dashboard e modelos de ML
+│   ├── CONCLUSOES.md              # resultados e conclusões
+│   ├── ESTADO.md                  # checklist e prazos
+│   ├── DESENVOLVIMENTO.md         # correr e testar fora do Databricks
+│   └── MANUAL_ABD.md              # manual de estudo da cadeira (teoria: lakehouse, Spark, Delta)
+├── Project_Instructions.md        # enunciado do professor (aula 7 + regras de entrega e apresentação)
+├── CLAUDE.md                      # instruções para o assistente Claude Code (não é preciso para ler o projeto)
 ├── requirements.txt               # bibliotecas usadas (já incluídas no Databricks)
+├── requirements-local.txt         # bibliotecas para correr localmente (PySpark + Jupyter)
+├── .gitignore                     # exclui o .venv/ e o lakehouse local (lakehouse_oil_psi/)
 └── README.md
 ```
 
 ---
 
-## Fontes de dados (gratuitas, sem chave)
+## Fontes de dados
 
-| Fonte | Série / símbolo | Conteúdo | Freq. | Desde |
-|---|---|---|---|---|
-| **FRED** (Federal Reserve Bank of St. Louis) | `DCOILBRENTEU` | Brent spot (USD/barril) | Diária | 1987 |
-| FRED | `DCOILWTICO` | WTI spot (USD/barril) | Diária | 1986 |
-| FRED | `DEXUSEU` | Câmbio USD por 1 EUR | Diária | 1999 |
-| FRED / OCDE | `SPASTT01PTM661N` | Índice de preços de ações — Portugal (2015 = 100) | Mensal | 1988 |
-| FRED / Eurostat | `CP0000PTM086NEST` | IHPC Portugal — índice harmonizado de preços no consumidor (inflação) | Mensal | 1996 |
-| **Yahoo Finance** (chart API) | `PSI20.LS` | Índice PSI (OHLCV) | Diária | 2013-04-30 |
-| Yahoo Finance | `GALP` `EDP` `EDPR` `RENE` `JMT` `SON` `IBS` `BCP` `NOS` `CTT` `EGL` `NVG` `ALTR` `SEM` `COR` (`.LS`) | Cotações das 15 empresas (OHLCV + fecho ajustado a dividendos) | Diária | 2000 ou data de entrada em bolsa |
+São 21 séries gratuitas e sem chave:
+- **FRED:** Brent, WTI, EUR/USD, o índice OCDE de ações portuguesas e o IHPC de Portugal;
+- **Yahoo Finance:** o índice PSI e 15 empresas cotadas.
 
-Notas:
-- **Não existe PSI diário gratuito antes de 2013.** Por isso usam-se também o índice mensal da OCDE e as cotações das empresas.
-- Investing.com e Euronext foram considerados: o primeiro não tem API e proíbe a recolha automática; o segundo só dá 2 anos de histórico gratuito.
-- O Databricks Free Edition só permite acesso à internet para domínios "confiáveis". O notebook tenta a API e, se falhar, usa o ficheiro *seed* com a mesma janela de datas. A tabela `ctl_ingestion_log` regista o modo (`API` ou `SEED`).
-
----
+Não existe PSI diário gratuito antes de 2013; por isso usam-se também o índice mensal da OCDE e as cotações das empresas.
+Como o Databricks Free Edition restringe o acesso à internet, o notebook usa ficheiros *seed* quando a API falha.
+→ Detalhe e schemas das respostas: [docs/FONTES.md](docs/FONTES.md).
 
 ## Arquitetura (Medallion)
 
 ```
-APIs ─► LANDING  /Volumes/workspace/oil_psi/lake/landing/...   (resposta em bruto, 1 ficheiro por leitura)
-         │
-         ▼
-BRONZE   bz_fred_observations, bz_yahoo_chart   (Delta, append-only, valores em bruto + metadados de linhagem)
-         │  normalização: tipos, nulos, duplicados (leitura mais recente), datas em Europe/Lisbon, dq_flag
-         ▼
-SILVER   sv_dim_instrument, sv_fact_price_daily, sv_fact_equity_daily,
-         │  sv_fact_pt_shares_monthly, sv_fact_cpi_monthly                       (MERGE/upsert)
-         │  integração, forward-fill, Brent em EUR, inflação, retornos, médias móveis, betas
-         ▼
-GOLD     gd_market_daily, gd_market_monthly, gd_market_yearly, gd_equity_monthly, gd_oil_sensitivity
-         │
-         ▼
-ANÁLISE  Spark SQL, matplotlib, AI/BI Dashboard, Spark MLlib
+APIs ─► LANDING (ficheiros em bruto) ─► BRONZE (append-only, linhagem) ─► SILVER (normalizada, MERGE) ─► GOLD (analítica, otimizada)
+                                                                                                          └─► Spark SQL · matplotlib · AI/BI Dashboard · MLlib
 ```
 
-### Tabelas (schema `workspace.oil_psi`)
+Há 3 leituras incrementais (carga histórica + 2 incrementais, com 45 dias de sobreposição). A Silver pode ser reprocessada de raiz a partir
+da Bronze, e o Delta Lake garante `MERGE`, *time travel* e `OPTIMIZE … ZORDER`.
+→ Processo: [docs/ARQUITETURA.md](docs/ARQUITETURA.md) · Tabelas e colunas: [docs/TABELAS.md](docs/TABELAS.md).
 
-| Camada | Tabela | Descrição |
+---
+
+## Como executar
+
+O notebook corre em dois ambientes. O **Databricks** é o oficial: é lá que se faz a execução final e se exporta o HTML para a entrega.
+A execução **local** serve só para testar alterações.
+
+### Databricks vs local
+
+| | Databricks Free Edition (oficial) | Local (testes) |
 |---|---|---|
-| Controlo | `ctl_ingestion_log` | Uma linha por série e por leitura (janela, modo API/SEED, nº de registos) |
-| Bronze | `bz_fred_observations` | Observações FRED em bruto, particionadas por `_ingest_date` |
-| Bronze | `bz_yahoo_chart` | Cotações Yahoo em bruto (incluindo o fecho ajustado), extraídas do JSON aninhado |
-| Silver | `sv_dim_instrument` | Dimensão de instrumentos (nome, setor, moeda, fonte, sinal esperado pela hipótese e pela leitura do setor) |
-| Silver | `sv_fact_price_daily` | Factos diários: Brent, WTI, EUR/USD |
-| Silver | `sv_fact_equity_daily` | Factos diários: PSI + 15 empresas (OHLCV + fecho ajustado) |
-| Silver | `sv_fact_pt_shares_monthly` | Índice mensal OCDE de ações portuguesas |
-| Silver | `sv_fact_cpi_monthly` | IHPC mensal de Portugal (inflação) |
-| Gold | `gd_market_daily` | Tabela diária larga: Brent em EUR, retornos log, MA50/200, correlação e volatilidade móveis, drawdowns; particionada por ano + `OPTIMIZE ZORDER BY (date)` |
-| Gold | `gd_market_monthly` / `gd_market_yearly` | Agregados mensais e anuais, incluindo o Brent em euros a preços de hoje |
-| Gold | `gd_equity_monthly` | Uma linha por empresa e mês: retorno mensal (fecho ajustado), mercado PT sem a própria empresa, retorno do Brent (EUR) e desfasamentos, correlação móvel de 36 meses, preço real; inclui o cabaz `PT_EX_GALP` |
-| Gold | `gd_oil_sensitivity` | Por empresa e período: correlação, beta, beta sem mercado, estatísticas t, veredicto sobre a hipótese e correlações desfasadas |
+| Spark | o do runtime (serverless), nada a instalar | `pyspark` instalado com pip + Java 17 |
+| Tabelas | Delta Lake + Unity Catalog (`workspace.oil_psi`) | Parquet em `./spark-warehouse/oil_psi.db/` (ignorada pelo git) |
+| Ficheiros (landing, seed) | Volume `/Volumes/workspace/oil_psi/lake` | pasta `./lakehouse_oil_psi/` (ignorada pelo git) |
+| Seeds | copiados automaticamente de `dados_fonte/` (Git folder); senão, *upload* manual | copiados automaticamente de `dados_fonte/` |
+| Células `%sql` | nativas | convertidas automaticamente em `spark.sql(...)` |
+| `display()` | tabelas e gráficos interativos | tabela em texto |
+| `MERGE`, `OPTIMIZE … ZORDER`, *time travel* | sim (Delta) | o `MERGE` passa a *anti-join + union*; os outros são saltados |
+| Internet | só domínios "confiáveis": as APIs bloqueadas leem o seed | as APIs costumam responder: dados mais recentes, números diferentes de [CONCLUSOES.md](docs/CONCLUSOES.md) |
+| Entrega em HTML | sim (*File → Export → HTML*) | não serve para a entrega |
 
-### Características do processo
-- **Incremental:** 3 leituras de 21 séries — `carga_inicial` (2000-01-01 → 2025-12-31), `incremental_1` (até 2026-06-30) e `incremental_2` (até hoje). Cada leitura parte do *watermark* da Bronze com 45 dias de sobreposição; o `MERGE` na Silver resolve os duplicados.
-- **Reprocessável:** a Silver é reconstruída de raiz a partir da Bronze e o notebook verifica que o resultado é idêntico.
-- **Linhagem:** cada registo guarda `_batch_id`, `_ingestion_ts`, `_source_file` e `_ingest_date`.
-- **Delta Lake:** transações ACID, `MERGE`, *time travel* (`DESCRIBE HISTORY`, `VERSION AS OF`), `OPTIMIZE … ZORDER BY`.
+O notebook deteta sozinho o ambiente (`IS_DATABRICKS`). O mesmo ficheiro corre nos dois sem alterações.
 
----
-
-## Regras metodológicas
-
-- A análise por empresa é **mensal**: retornos logarítmicos com o fecho ajustado do último dia de negociação de cada mês.
-- Correlações, betas e testes são calculados **sempre sobre retornos**, **nunca sobre níveis de preço**, para evitar correlações espúrias.
-- O petróleo é comparado com o PSI e com as empresas **em euros**: `brent_eur = brent_usd / eurusd`.
-- **Inflação:** o IHPC de Portugal serve para mostrar os preços em euros de hoje nos gráficos de evolução. As correlações usam retornos nominais, porque a inflação mensal (~0,2%) quase não as altera.
-- **Significância:** |t| ≥ 2. **Veredicto:** "Confirma" se o sinal é o esperado (− para as empresas, + para a Galp) e significativo; "Contraria" se é significativo com o sinal oposto; "Sem efeito significativo" nos restantes casos.
-- **Beta sem mercado:** `ret_ação ~ ret_brent_eur + ret_mercado_PT`, em que o mercado PT é a média com pesos iguais das **outras** empresas. Separa o efeito "custo do petróleo" do efeito "ciclo económico".
-- **Qualidade:** um dia com variação > 40% no fecho ajustado marca o mês com `ret_outlier`, e esse mês fica fora das estatísticas (2 meses da Altri). Preços ≤ 0 ficam com `dq_flag` e não são apagados (ex.: WTI a −37,63 USD em 20-04-2020).
-- **ML:** divisão temporal (treino até 2023, teste de 2024 em diante), sem amostragem aleatória.
-
----
-
-## Como executar (Databricks Free Edition)
+### A. Databricks Free Edition (execução oficial)
 
 As bibliotecas usadas (`pyspark`, `requests`, `pandas`, `numpy`, `matplotlib`) já vêm instaladas no Databricks; o [requirements.txt](requirements.txt) serve apenas como documentação.
 
-1. Importar `Lakehouse_Petroleo_PSI.ipynb` para o workspace (*Workspace → Import*).
-2. Correr as células da secção **0. Configuração do ambiente** (criam o schema `workspace.oil_psi` e o Volume `lake`).
-3. Em **Catalog → workspace → oil_psi → Volumes → lake**, criar a pasta `seed` e fazer *upload* dos **21 ficheiros** de `dados_fonte/`.
+1. Abrir o repositório como **Git folder** (*Workspace → Create → Git folder*, com o URL do GitHub), ou atualizá-lo com *Pull*.
+   Também se pode importar só o notebook (*Workspace → Import*), mas então os seeds não são copiados sozinhos (ver passo 3).
+2. Correr as células da secção **0. Configuração do ambiente**. Criam o schema `workspace.oil_psi` e o Volume `lake` e copiam os
+   21 seeds de `dados_fonte/` para `/Volumes/workspace/oil_psi/lake/seed/`. A cópia é idempotente: só copia o que falta.
+3. *Só se o notebook foi importado sem a Git folder:* em **Catalog → workspace → oil_psi → Volumes → lake**, criar a pasta `seed` e fazer *upload* dos **21 ficheiros** de `dados_fonte/`.
 4. Correr **Run all**. Com `RESET = True` todas as tabelas e a landing são apagadas e reconstruídas (o seed é mantido).
-5. Criar o **AI/BI Dashboard** (*New → Dashboard*) sobre as tabelas `gd_*` (widgets propostos na secção 6.2 do notebook).
+5. Criar o **AI/BI Dashboard** (*New → Dashboard*) sobre as tabelas `gd_*` (widgets propostos na secção 6.2 do notebook; especificação em [docs/ANALISES.md](docs/ANALISES.md)).
 6. Exportar o notebook em **HTML** (*File → Export → HTML*) para a entrega.
+
+### B. Local (só para testes)
+
+**1. Instalar o Python 3.12 e o Java 17** (uma vez por computador):
+
+| macOS (Terminal) | Windows (PowerShell) |
+|---|---|
+| `brew install python@3.12 openjdk@17` | `winget install Python.Python.3.12 EclipseAdoptium.Temurin.17.JDK` |
+
+**2. Preparar o ambiente** (uma vez, na pasta do repositório):
+
+macOS:
+```bash
+python3.12 -m venv .venv
+.venv/bin/pip install -r requirements-local.txt
+.venv/bin/python -m ipykernel install --user --name projecto-abd --display-name "Projecto ABD (PySpark local)"
+```
+
+Windows:
+```powershell
+py -3.12 -m venv .venv
+.venv\Scripts\pip install -r requirements-local.txt
+.venv\Scripts\python -m ipykernel install --user --name projecto-abd --display-name "Projecto ABD (PySpark local)"
+```
+
+**3. Correr:**
+1. Abrir `Lakehouse_Petroleo_PSI.ipynb` no VS Code ou no Cursor.
+2. Em **Select Kernel → Jupyter Kernel…**, escolher **"Projecto ABD (PySpark local)"**. Os outros kernels não têm o PySpark.
+   Se este não aparecer, recarregar o editor (*Cmd/Ctrl+Shift+P → Developer: Reload Window*).
+3. Clicar em **Run all**. O notebook encontra o Java, copia os seeds e corre as células `%sql` sozinho.
+
+> **Windows:** para gravar as tabelas, o Spark precisa do `winutils.exe` + `hadoop.dll` (Hadoop 3) em `C:\hadoop\bin`, com
+> `HADOOP_HOME=C:\hadoop`.
+
+Outros erros: [docs/DESENVOLVIMENTO.md](docs/DESENVOLVIMENTO.md#problemas-comuns).
+
+---|---|---|
+| 1. Java 17 | `brew install openjdk@17` | `winget install EclipseAdoptium.Temurin.17.JDK` |
+| 2. Ambiente Python | `python3.12 -m venv .venv`<br>`source .venv/bin/activate` | `py -3.12 -m venv .venv`<br>`.venv\Scripts\Activate.ps1` |
+| 3. Bibliotecas | `pip install -r requirements-local.txt` | `pip install -r requirements-local.txt` |
+| 4. Kernel Jupyter | `python -m ipykernel install --user --name projecto-abd --display-name "Projecto ABD (PySpark local)"` | igual |
+| 5. *Só Windows*, para gravar tabelas | — | `winutils.exe` + `hadoop.dll` (Hadoop 3) numa pasta `...\hadoop\bin` e `HADOOP_HOME` a apontar para `...\hadoop` |
+
+Também se pode usar o `uv` em vez do `venv`/`pip`: `uv venv .venv --python 3.12` e `uv pip install --python .venv -r requirements-local.txt`.
+
+**Correr:**
+1. Abrir `Lakehouse_Petroleo_PSI.ipynb` no VS Code ou no Jupyter e escolher o kernel **"Projecto ABD (PySpark local)"**. O kernel
+   "Python 3" do Anaconda/sistema não tem o PySpark.
+2. Correr **Run all**. O notebook trata sozinho do resto:
+   - encontra o Java, se o `JAVA_HOME` não estiver definido;
+   - copia os seeds de `dados_fonte/` para `./lakehouse_oil_psi/seed/`;
+   - corre as células `%sql`.
+3. Em alternativa, pela linha de comandos:
+   `jupyter nbconvert --to notebook --execute --ExecutePreprocessor.kernel_name=projecto-abd Lakehouse_Petroleo_PSI.ipynb --output run_local.ipynb`
+
+Problemas comuns e detalhes: [docs/DESENVOLVIMENTO.md](docs/DESENVOLVIMENTO.md).
 
 ---
 
@@ -137,29 +178,14 @@ As bibliotecas usadas (`pyspark`, `requests`, `pandas`, `numpy`, `matplotlib`) j
 
 _Execução local de 07-11-2026 com os ficheiros seed (PySpark 4.3, modo SEED). Os números devem ser confirmados depois da execução no Databricks._
 
-**Petróleo**
-- Em euros a preços de hoje, a média de 2008 (92 €/barril) foi mais baixa do que as de 2012 (115 €) e de 2022 (111 €): o euro forte amorteceu o choque de 2008.
+- **Galp — confirma a hipótese.** Num mês em que o Brent (EUR) sobe 10%, a Galp sobe em média +2,7% (t = 7,1), e +2,1% descontando a bolsa (t = 5,6).
+- **As outras 14 — não confirmam no efeito total.** Todas têm correlação positiva com o petróleo e o cabaz sem a Galp sobe +1,0% por cada +10% no Brent (t = 4,3): petróleo e bolsa seguem o mesmo ciclo económico.
+- **Descontando o movimento da bolsa**, 7 das 14 ficam negativas; a REN e os CTT confirmam a hipótese de forma significativa.
+- **A relação depende do tipo de choque:** juntos nas crises de procura (2020–22); no choque de 2025–26 a correlação de 36 meses do cabaz sem a Galp caiu para −0,32, enquanto a Galp ficou em +0,50.
+- **Prever o PSI com o petróleo não funciona:** R² de 5% e um Random Forest abaixo da regra ingénua "sobe sempre" (AUC 0,44).
 
-**Hipótese do grupo (retornos mensais, 2000–2026)**
-- **Galp — confirma.** Correlação mensal 0,42; num mês em que o Brent (EUR) sobe 10%, a Galp sobe em média +2,7% (t = 7,1), e +2,1% descontando a bolsa (t = 5,6).
-- **As outras 14 — não confirmam no efeito total.** Todas têm correlação positiva com o petróleo (0,01 a 0,27) e 8 sobem de forma significativa com ele. O cabaz sem a Galp sobe +1,0% por cada +10% no Brent (t = 4,3). Petróleo e bolsa seguem o mesmo ciclo económico.
-- **Descontando o movimento da bolsa:** 7 das 14 ficam negativas (elétricas, NOS, CTT, Jerónimo Martins, Sonae). A REN e os CTT confirmam a hipótese de forma significativa. As exportadoras e as empresas com negócio em países petrolíferos (BCP, Mota-Engil) continuam positivas.
-- **A relação depende do tipo de choque:** nas crises de procura (2020–22) tudo se move junto; no choque de 2025–26 a correlação de 36 meses do cabaz sem a Galp caiu para −0,32, enquanto a Galp ficou em +0,50.
-- **Sem desfasamento:** o petróleo de 1–3 meses antes não explica a bolsa de hoje.
-
-**PSI e ML**
-- PSI vs Brent EUR: correlação diária 0,21 e mensal 0,25.
-- A regressão linear explica só 5% (R²) da variação diária do PSI. O Random Forest (o PSI sobe amanhã?) teve accuracy de 47,5% e AUC de 0,44, abaixo da regra ingénua "sobe sempre" (53,4%).
-
----
+→ Todos os resultados e o mapa das conclusões do notebook: [docs/CONCLUSOES.md](docs/CONCLUSOES.md).
 
 ## Estado do projeto
 
-- [x] Fontes escolhidas e seeds descarregados (FRED + Yahoo, 21 ficheiros)
-- [x] Notebook completo (Landing → Bronze → Silver → Gold → Análise → Conclusões), com análise por empresa e inflação, testado em Spark local
-- [ ] *Upload* dos 21 seeds para `/Volumes/workspace/oil_psi/lake/seed/`
-- [ ] **Run all** no Databricks e correção de erros específicos do serverless
-- [ ] AI/BI Dashboard
-- [ ] Rever as conclusões com os números da execução no Databricks
-- [ ] Exportar em HTML e entregar no Moodle (até 16-11-2026, 23:59)
-- [ ] Inscrever o grupo num horário de apresentação no Moodle (17 ou 19-11-2026, 15 minutos)
+Checklist e prazos (entrega até 16-11-2026, 23:59; apresentação a 17 ou 19-11-2026): [docs/ESTADO.md](docs/ESTADO.md).
