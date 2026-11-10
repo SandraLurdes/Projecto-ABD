@@ -67,5 +67,5 @@ aqui e no resumo do [README](../README.md).
 ## 3. Checklist de revisão após correr no Databricks
 
 1. Comparar a tabela da Q6 (`gd_oil_sensitivity`, total) com a secção 1 deste documento.
-2. Rever as conclusões 1–11 do notebook e os números da tabela acima.
+2. Rever as conclusões 1–11 do notebook e os números da tabela acima, e também os números citados nos fechos de secção (5, 6.1, 6.3) e nas notas "Como ler" dos gráficos.
 3. Atualizar este ficheiro, o resumo do README e a proveniência no topo.

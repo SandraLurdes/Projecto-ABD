@@ -5,7 +5,7 @@ incrementais e reprocessamento.
 - As colunas de cada tabela estão em [TABELAS.md](TABELAS.md).
 - O formato das fontes está em [FONTES.md](FONTES.md).
 
-Fonte de verdade: notebook, secções 0–5 (células 1, 4–5, 7, 14, 19, 24, 27, 30–37).
+Fonte de verdade: notebook, secções 0–5 (células 2, 5–6, 8, 16, 22, 28, 31, 35–42).
 
 ## 1. Visão geral
 
@@ -98,7 +98,7 @@ São 3 leituras (*batches*) das 21 séries:
 ## 5. Delta Lake e otimização
 
 - Transações ACID, `MERGE` para upserts.
-- **Time travel:** `DESCRIBE HISTORY gd_market_daily` e `SELECT … VERSION AS OF 0` (notebook 5, célula 37).
+- **Time travel:** `DESCRIBE HISTORY gd_market_daily` e `SELECT … VERSION AS OF 0` (notebook 5, célula 42).
 - **`gd_market_daily`** está particionada por `year` e tem `OPTIMIZE … ZORDER BY (date)`, para compactar ficheiros pequenos e fazer *data skipping*.
 - A Bronze está particionada por `_ingest_date`.
 - As instruções `OPTIMIZE`, `DESCRIBE HISTORY` e `VERSION AS OF` só correm quando `TABLE_FORMAT == "delta"`.

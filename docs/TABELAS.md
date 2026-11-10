@@ -13,7 +13,7 @@ Os tipos vêm do código do notebook (casts, `StructType`, funções do Spark).
 | Controlo | [`ctl_ingestion_log`](#ctl_ingestion_log) | série × leitura | append | — | `ingest` |
 | Bronze | [`bz_fred_observations`](#bz_fred_observations) | série × data × leitura | append | `_ingest_date` | `load_bronze_fred` |
 | Bronze | [`bz_yahoo_chart`](#bz_yahoo_chart) | símbolo × timestamp × leitura | append | `_ingest_date` | `load_bronze_yahoo` |
-| Silver | [`sv_dim_instrument`](#sv_dim_instrument) | `instrument_id` | MERGE | — | célula 21 (`_dim_row`) |
+| Silver | [`sv_dim_instrument`](#sv_dim_instrument) | `instrument_id` | MERGE | — | célula 24 (`_dim_row`) |
 | Silver | [`sv_fact_price_daily`](#sv_fact_price_daily-sv_fact_pt_shares_monthly-sv_fact_cpi_monthly) | `instrument_id`, `date` | MERGE | — | `build_silver` |
 | Silver | [`sv_fact_pt_shares_monthly`](#sv_fact_price_daily-sv_fact_pt_shares_monthly-sv_fact_cpi_monthly) | `instrument_id`, `month_date` | MERGE | — | `build_silver` |
 | Silver | [`sv_fact_cpi_monthly`](#sv_fact_price_daily-sv_fact_pt_shares_monthly-sv_fact_cpi_monthly) | `instrument_id`, `month_date` | MERGE | — | `build_silver` |
@@ -31,7 +31,7 @@ A tabela `sv_fact_psi_daily` é de uma versão anterior e já não é criada. Es
 ## Controlo
 
 ### `ctl_ingestion_log`
-Schema explícito em `LOG_SCHEMA` (célula 9). Tem uma linha por série e por leitura.
+Schema explícito em `LOG_SCHEMA` (célula 10). Tem uma linha por série e por leitura.
 
 | Coluna | Tipo | Descrição |
 |---|---|---|
@@ -91,7 +91,7 @@ Colunas técnicas comuns aos factos:
 - `_updated_ts` (ts, a hora da normalização).
 
 ### `sv_dim_instrument`
-São 21 linhas, construídas a partir de `FRED_SERIES` + `YAHOO_SYMBOLS` (o schema é declarado em string na célula 21).
+São 21 linhas, construídas a partir de `FRED_SERIES` + `YAHOO_SYMBOLS` (o schema é declarado em string na célula 24).
 
 | Coluna | Tipo | Descrição |
 |---|---|---|

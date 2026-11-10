@@ -4,7 +4,7 @@ Este documento trata só do que vem **de fora** do lakehouse: as APIs, as série
 respostas e os ficheiros de contingência (*seed*). As tabelas criadas a partir destes dados estão em
 [TABELAS.md](TABELAS.md). O fluxo entre camadas está em [ARQUITETURA.md](ARQUITETURA.md).
 
-Fonte de verdade: notebook, células 1 (tabela de fontes), 6 (`FRED_SERIES`, `YAHOO_SYMBOLS`) e 8 (`fetch_*`, `find_seed`).
+Fonte de verdade: notebook, células 2 (tabela de fontes), 7 (`FRED_SERIES`, `YAHOO_SYMBOLS`) e 9 (`fetch_*`, `find_seed`).
 
 ## 1. Catálogo das séries (21, todas gratuitas e sem chave)
 
@@ -132,7 +132,7 @@ O modo fica registado em `ctl_ingestion_log.extract_mode` como `API` ou `SEED (<
 
 ## 5. Acrescentar uma série
 
-1. Juntá-la a `FRED_SERIES` ou a `YAHOO_SYMBOLS` (notebook, célula 6). Nas empresas, usar `_eq(nome, sector, hypothesis, sector_view)`.
+1. Juntá-la a `FRED_SERIES` ou a `YAHOO_SYMBOLS` (notebook, célula 7). Nas empresas, usar `_eq(nome, sector, hypothesis, sector_view)`.
 2. Pôr o seed correspondente em `dados_fonte/` (com o mesmo formato da API).
-3. Atualizar a tabela de fontes no markdown do notebook (célula 1), e a tabela de empresas (célula 2) se for o caso.
+3. Atualizar a tabela de fontes no markdown do notebook (célula 2), e a tabela de empresas (célula 3) se for o caso.
 4. Atualizar este documento e [METODOLOGIA.md](METODOLOGIA.md) (no caso das empresas).

@@ -3,7 +3,7 @@
 São as decisões do grupo sobre **o que se testa e como**. Qualquer alteração a estas regras no notebook obriga a rever
 [CONCLUSOES.md](CONCLUSOES.md).
 
-Fonte de verdade: notebook, células 0 e 2 (hipótese, empresas), 24 e 27 (regras da Gold) e 69 (limitações).
+Fonte de verdade: notebook, células 0 e 3 (hipótese, empresas), 28 e 31 (regras da Gold) e 84 (limitações).
 
 ## 1. Hipótese do grupo
 
