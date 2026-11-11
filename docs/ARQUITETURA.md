@@ -32,7 +32,7 @@ ANÁLISE  Spark SQL (%sql), matplotlib, AI/BI Dashboard, MLlib (LinearRegression
 CONTROLO ctl_ingestion_log (uma linha por série e por leitura)
 ```
 
-- **Catálogo / schema:** `workspace.oil_psi`. **Volume:** `lake` (`/Volumes/workspace/oil_psi/lake`), com as pastas `landing/` e `seed/`.
+- **Catálogo / schema:** `workspace.oil_psi`. **Volume:** `lake` (`/Volumes/workspace/oil_psi/lake`), com as pastas `landing/` e `fallback/`.
 - **Prefixos:** `ctl_` (controlo), `bz_` (Bronze), `sv_` (Silver), `gd_` (Gold). É o estilo do notebook da aula 7
   ("ABD07 The Data Lakehouse"), que usa `BZ_` / `SV_` / `GD_`.
 
@@ -40,8 +40,8 @@ CONTROLO ctl_ingestion_log (uma linha por série e por leitura)
 
 | Camada | O que guarda | Como escreve | Função |
 |---|---|---|---|
-| **Landing** | A resposta da API (ou do seed) **sem qualquer alteração**, 1 ficheiro por série e por leitura | ficheiro novo | `land` (chamada por `ingest`) |
-| **Controlo** | Uma linha por série e por leitura (janela, modo API/SEED, nº de registos, ficheiro) | append | `ingest` |
+| **Landing** | A resposta da API (ou do fallback) **sem qualquer alteração**, 1 ficheiro por série e por leitura | ficheiro novo | `land` (chamada por `ingest`) |
+| **Controlo** | Uma linha por série e por leitura (janela, modo API/FALLBACK, nº de registos, ficheiro) | append | `ingest` |
 | **Bronze** | **Todas** as leituras, sem descartar nada; valores em bruto + metadados de linhagem | append, particionada por `_ingest_date` | `load_bronze` = `load_bronze_fred` + `load_bronze_yahoo` |
 | **Silver** | Dados normalizados e detalhados, modelados para o tema: 1 dimensão + 4 factos | `MERGE` (upsert) pelas chaves de negócio | `upsert`, `normalize_fred`, `normalize_yahoo`, `build_silver` |
 | **Gold** | Tabelas largas (desnormalizadas) prontas para análise, sem joins na hora da consulta | overwrite (`overwriteSchema`) | `build_gold`, `build_gold_equity` |
@@ -91,7 +91,7 @@ São 3 leituras (*batches*) das 21 séries:
   Fora do Databricks (Parquet) faz *anti-join* + `union` + overwrite.
 - **`build_silver(batch_id=None)`** reconstrói a Silver a partir de **toda** a Bronze. O notebook (5.1) apaga as 4 tabelas de factos
   (`SILVER_FACTS`), reconstrói-as e verifica que as contagens são idênticas (`Silver idêntica após reprocessamento: True`).
-- **`RESET = True`** apaga todas as tabelas de `ALL_TABLES` e a landing (o seed **não** é apagado) e reconstrói tudo. É o modo usado para
+- **`RESET = True`** apaga todas as tabelas de `ALL_TABLES` e a landing (o fallback **não** é apagado) e reconstrói tudo. É o modo usado para
   a entrega (em produção ficaria `False`). Também apaga `sv_fact_psi_daily`, uma tabela de uma versão anterior (o PSI passou para
   `sv_fact_equity_daily`).
 
@@ -102,6 +102,24 @@ São 3 leituras (*batches*) das 21 séries:
 - **`gd_market_daily`** está particionada por `year` e tem `OPTIMIZE … ZORDER BY (date)`, para compactar ficheiros pequenos e fazer *data skipping*.
 - A Bronze está particionada por `_ingest_date`.
 - As instruções `OPTIMIZE`, `DESCRIBE HISTORY` e `VERSION AS OF` só correm quando `TABLE_FORMAT == "delta"`.
+
+### Desempenho
+
+Medido localmente a 11-11-2026 (`nbconvert --execute`, Run all completo):
+
+| | Antes | Depois |
+|---|---|---|
+| Execução completa | 455 s | 46 s |
+| `carga_inicial` / `incremental_1` / `incremental_2` | 170 / 139 / 124 s | 4 / 9 / 8 s |
+| Modo das leituras do FRED | `SEED (ReadTimeout)` nas 15 | `API` nas 15 |
+
+- **~95% do tempo era espera pela rede, não Spark.** O trabalho Spark todo (Bronze, Silver, Gold, ML, gráficos) leva ~20 s, por isso
+  não se otimizou o Spark (`shuffle.partitions`, `count()`).
+- **Causa principal:** o FRED não responde a User-Agents tipo "browser" e cada pedido esperava 30 s (`timeout`) antes de cair no
+  fallback (5 séries × 30 s por leitura). Agora o User-Agent é por fonte ([FONTES.md](FONTES.md#2-fred-federal-reserve-bank-of-st-louis)).
+- **`ingest` faz os 21 pedidos em paralelo** (`ThreadPoolExecutor`, 8 de cada vez). Com as APIs a responder o ganho é pequeno, mas se
+  uma API estiver bloqueada (Databricks) a espera passa de 30 s por série para ~30 s por leitura. Cada série mantém o seu fallback e
+  o log fica pela ordem do catálogo.
 
 ## 6. Ambiente (`IS_DATABRICKS`)
 
@@ -115,9 +133,9 @@ São 3 leituras (*batches*) das 21 séries:
   - o notebook define um `display()` simples;
   - o notebook prepara sozinho o ambiente: `PYSPARK_PYTHON`, deteção do `JAVA_HOME` (macOS/Windows) e uma *cell magic* `sql` com
     um *input transformer* que faz correr as células `%sql` com `spark.sql(...)`.
-- **Nos dois ambientes**, a célula do schema copia os seeds de `dados_fonte/` (pasta do notebook ou a pasta-mãe) para `SEED`, de forma
+- **Nos dois ambientes**, a célula do schema copia os ficheiros de fallback de `dados_fallback/` (pasta do notebook ou a pasta-mãe) para `FALLBACK`, de forma
   idempotente: só copia os que faltam ou têm tamanho diferente. No Databricks isto funciona com o repositório numa Git folder, onde a
-  pasta de trabalho é a do notebook. Sem `dados_fonte/`, o *upload* para o Volume é manual.
+  pasta de trabalho é a do notebook. Sem `dados_fallback/`, o *upload* para o Volume é manual.
 
   Ver [DESENVOLVIMENTO.md](DESENVOLVIMENTO.md).
 
@@ -128,8 +146,8 @@ As funções são definidas na mesma célula em que são usadas pela primeira ve
 | Secção | Conteúdo | Funções / constantes |
 |---|---|---|
 | Cabeçalho | Título, grupo, objetivo, fontes, arquitetura, empresas | — |
-| 0 Configuração | Ambiente, schema, Volume, reset, catálogo de séries | `IS_DATABRICKS`, `TABLE_FORMAT`, `BASE`/`LANDING`/`SEED`, `RESET`, `ALL_TABLES`, `FRED_SERIES`, `YAHOO_SYMBOLS`, `_eq` |
-| 1 Ingestão / Landing | Pedidos às APIs, contingência, gravação na landing, log | `HTTP_HEADERS`, `_http_get`, `_to_epoch`, `fetch_fred`, `fetch_yahoo`, `find_seed`, `land`, `LOG_SCHEMA`, `ingest` |
+| 0 Configuração | Ambiente, schema, Volume, reset, catálogo de séries | `IS_DATABRICKS`, `TABLE_FORMAT`, `BASE`/`LANDING`/`FALLBACK`, `RESET`, `ALL_TABLES`, `FRED_SERIES`, `YAHOO_SYMBOLS`, `_eq` |
+| 1 Ingestão / Landing | Pedidos às APIs, contingência, gravação na landing, log | `YAHOO_HEADERS`, `_http_get`, `_to_epoch`, `fetch_fred`, `fetch_yahoo`, `find_fallback`, `land`, `LOG_SCHEMA`, `ingest` |
 | 1.1 1.ª leitura | Carga histórica | `HIST_START`, `HIST_END`, `all_series` |
 | 2 Bronze (+ 2.1 qualidade) | Carga append | `load_bronze_fred`, `load_bronze_yahoo`, `load_bronze` |
 | 3 Silver | Normalização + MERGE | `upsert`, `latest_per_key`, `_dim_row`, `normalize_fred`, `normalize_yahoo`, `SILVER_FACTS`, `build_silver` |

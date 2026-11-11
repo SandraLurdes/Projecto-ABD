@@ -40,7 +40,7 @@ Schema explícito em `LOG_SCHEMA` (célula 10). Tem uma linha por série e por l
 | `source` | str | `FRED` ou `YAHOO` |
 | `series_id` | str | ID FRED ou símbolo Yahoo |
 | `window_start`, `window_end` | str | Janela pedida (`AAAA-MM-DD`) |
-| `extract_mode` | str | `API` ou `SEED (<tipo de erro>)` |
+| `extract_mode` | str | `API` ou `FALLBACK (<tipo de erro>)` |
 | `records` | long | Linhas do CSV (sem o cabeçalho) ou nº de timestamps do JSON |
 | `landing_file` | str | Caminho do ficheiro gravado na landing |
 | `ingestion_ts` | ts | Hora da leitura (UTC) |

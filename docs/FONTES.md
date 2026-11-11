@@ -1,10 +1,10 @@
 # Fontes de dados
 
 Este documento trata só do que vem **de fora** do lakehouse: as APIs, as séries, o formato em bruto das
-respostas e os ficheiros de contingência (*seed*). As tabelas criadas a partir destes dados estão em
+respostas e os ficheiros de contingência (*fallback*). As tabelas criadas a partir destes dados estão em
 [TABELAS.md](TABELAS.md). O fluxo entre camadas está em [ARQUITETURA.md](ARQUITETURA.md).
 
-Fonte de verdade: notebook, células 2 (tabela de fontes), 7 (`FRED_SERIES`, `YAHOO_SYMBOLS`) e 9 (`fetch_*`, `find_seed`).
+Fonte de verdade: notebook, células 2 (tabela de fontes), 7 (`FRED_SERIES`, `YAHOO_SYMBOLS`) e 9 (`fetch_*`, `find_fallback`) e 10 (`ingest`).
 
 ## 1. Catálogo das séries (21, todas gratuitas e sem chave)
 
@@ -18,7 +18,7 @@ Fonte de verdade: notebook, células 2 (tabela de fontes), 7 (`FRED_SERIES`, `YA
 | Yahoo Finance (chart API) | `PSI20.LS` | Índice PSI (OHLCV) | Pontos | D | **2013-04-30** |
 | Yahoo Finance | 15 empresas `.LS` (ver abaixo) | Cotações OHLCV + fecho ajustado | EUR | D | 2000 ou IPO |
 
-Cobertura dos seeds de Yahoo (primeiro → último dia, nº de dias):
+Cobertura dos ficheiros de fallback do Yahoo (primeiro → último dia, nº de dias):
 
 | Símbolo | Empresa | Desde | Dias |
 |---|---|---|---|
@@ -57,14 +57,17 @@ GET https://fred.stlouisfed.org/graph/fredgraph.csv?id=<ID>&cosd=<AAAA-MM-DD>&co
 ```
 
 - Pede-se uma série por pedido. Num pedido com várias séries de frequências diferentes, o FRED agrega todas para a frequência mais baixa.
-- Validação da resposta: o texto tem de começar por `observation_date`. Se não começar, considera-se falha e usa-se o seed.
+- Validação da resposta: o texto tem de começar por `observation_date`. Se não começar, considera-se falha e usa-se o fallback.
+- **Sem User-Agent próprio** (`_http_get` sem `headers`, fica o do `requests`). O FRED **não responde** a User-Agents tipo "browser",
+  incluindo o do Yahoo: o pedido fica pendurado até ao `timeout` de 30 s (testado a 11-11-2026; com o do `requests` responde em 0,1 s).
+  Até essa data, todas as leituras do FRED caíam no fallback por causa disto.
 
 **Schema em bruto (CSV com cabeçalho):**
 
 | Coluna | Tipo em bruto | Significado |
 |---|---|---|
 | `observation_date` | texto `AAAA-MM-DD` | Data da observação. Nas séries mensais é o dia 1 do mês. |
-| `<ID da série>` (ex.: `DCOILBRENTEU`) | texto | Valor. **Os valores em falta vêm como string vazia** (nos seeds: 500 no Brent, 649 no WTI, 273 no EUR/USD) ou como `.`, a convenção antiga do FRED. |
+| `<ID da série>` (ex.: `DCOILBRENTEU`) | texto | Valor. **Os valores em falta vêm como string vazia** (no fallback: 500 no Brent, 649 no WTI, 273 no EUR/USD) ou como `.`, a convenção antiga do FRED. |
 
 Exemplo (`fred_DCOILBRENTEU.csv`):
 ```
@@ -83,7 +86,8 @@ O nome da 2.ª coluna muda com a série. A Bronze lê-a com `F.col(series_id)` e
 GET https://query1.finance.yahoo.com/v8/finance/chart/<SÍMBOLO>?period1=<epoch>&period2=<epoch>&interval=1d
 ```
 
-- Precisa de `User-Agent`: o notebook envia `Mozilla/5.0 (EDSA ABD student project)` (`HTTP_HEADERS`).
+- Precisa de `User-Agent` tipo "browser": o notebook envia `Mozilla/5.0 (EDSA ABD student project)` (`YAHOO_HEADERS`). Com o
+  User-Agent do `requests` responde HTTP 429. **Não usar o mesmo User-Agent nas duas fontes** (ver FRED acima).
 - `period1` corresponde ao início da janela em UTC (`_to_epoch`) e `period2` ao fim da janela + 86400 s, para incluir o último dia.
 - Validação da resposta: tem de existir `chart.result[0].timestamp`.
 
@@ -115,24 +119,28 @@ chart
 
 - Os arrays de `quote` e `adjclose` estão alinhados por posição com `timestamp[]`. A Bronze desaninha-os com `posexplode` (ver [TABELAS.md](TABELAS.md#bz_yahoo_chart)).
 - O `close` não está ajustado. Os retornos das empresas usam o `adjclose`. Se a API não devolver o bloco `adjclose`, a coluna fica nula e a Silver usa o `close`.
-- O PSI tem 15 dias com `close = null` no seed. Estes dias são eliminados na Silver.
+- O PSI tem 15 dias com `close = null` no fallback. Estes dias são eliminados na Silver.
 
-## 4. Acesso à internet no Databricks e contingência (seed)
+## 4. Acesso à internet no Databricks e contingência (fallback)
 
 O **Databricks Free Edition só deixa aceder à internet a uma lista de domínios "confiáveis"**. Cada `fetch_*` funciona assim:
 1. tenta a API;
-2. se der erro, lê o seed `fred_<ID>.csv` / `yahoo_<SÍMBOLO>.json` e **filtra-o pela mesma janela de datas**,
+2. se der erro, lê o ficheiro de fallback `fred_<ID>.csv` / `yahoo_<SÍMBOLO>.json` e **filtra-o pela mesma janela de datas**,
    mantendo o formato exato da resposta da API.
 
-O modo fica registado em `ctl_ingestion_log.extract_mode` como `API` ou `SEED (<tipo de erro>)`.
+O modo fica registado em `ctl_ingestion_log.extract_mode` como `API` ou `FALLBACK (<tipo de erro>)`.
 
-- **Seeds no repositório:** `dados_fonte/`, 21 ficheiros (5 `fred_<série>.csv` + 16 `yahoo_<símbolo>.json`), snapshot de 07-11-2026.
-- **No Databricks:** os seeds vão para `/Volumes/workspace/oil_psi/lake/seed/`. São copiados automaticamente de `dados_fonte/` pela célula do schema (secção 0) quando o repositório está numa Git folder; senão, faz-se o *upload* manual. A função `find_seed` também os encontra noutra pasta do Volume (ignora maiúsculas e exclui a `landing/`).
-- **Localmente:** os seeds são copiados automaticamente para `./lakehouse_oil_psi/seed/` (ver [DESENVOLVIMENTO.md](DESENVOLVIMENTO.md)).
+Os 21 pedidos de cada leitura correm em paralelo (`ingest`, 8 de cada vez). Cada série tem o seu próprio fallback; se o Yahoo
+limitar os pedidos (HTTP 429), essa série cai no fallback e o log mostra-o.
+
+- **Fallback no repositório:** `dados_fallback/`, 21 ficheiros (5 `fred_<série>.csv` + 16 `yahoo_<símbolo>.json`), cópia de 07-11-2026.
+  Não são a fonte principal: só se usam quando a API falha, e não têm dados posteriores a essa data.
+- **No Databricks:** os ficheiros vão para `/Volumes/workspace/oil_psi/lake/fallback/`. São copiados automaticamente de `dados_fallback/` pela célula do schema (secção 0) quando o repositório está numa Git folder; senão, faz-se o *upload* manual. A função `find_fallback` também os encontra noutra pasta do Volume (ignora maiúsculas e exclui a `landing/`).
+- **Localmente:** os ficheiros são copiados automaticamente para `./lakehouse_oil_psi/fallback/` (ver [DESENVOLVIMENTO.md](DESENVOLVIMENTO.md)).
 
 ## 5. Acrescentar uma série
 
 1. Juntá-la a `FRED_SERIES` ou a `YAHOO_SYMBOLS` (notebook, célula 7). Nas empresas, usar `_eq(nome, sector, hypothesis, sector_view)`.
-2. Pôr o seed correspondente em `dados_fonte/` (com o mesmo formato da API).
+2. Pôr o ficheiro de fallback correspondente em `dados_fallback/` (com o mesmo formato da API).
 3. Atualizar a tabela de fontes no markdown do notebook (célula 2), e a tabela de empresas (célula 3) se for o caso.
 4. Atualizar este documento e [METODOLOGIA.md](METODOLOGIA.md) (no caso das empresas).

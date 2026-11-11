@@ -1,6 +1,6 @@
 # Resultados e conclusões
 
-**Proveniência:** execução local de 07-11-2026 com os seeds e retornos mensais (PySpark 4.3 + Java 17, modo SEED forçado, tabelas
+**Proveniência:** execução local de 07-11-2026 com os ficheiros de fallback e retornos mensais (PySpark 4.3 + Java 17, modo forçado, então chamado SEED, tabelas
 em memória: o Windows sem `winutils.exe` não grava tabelas). As regressões do Spark foram conferidas com numpy (diferença < 1e-14).
 
 **A fonte de verdade é o notebook, secção 7.** Este documento resume os números e indica onde estão no texto.
@@ -57,7 +57,7 @@ aqui e no resumo do [README](../README.md).
 - **Spark:** CSV e JSON aninhado (`explode`/`posexplode`), janelas, MLlib e regressões só com agregações. Volume: ~7 mil dias e
   ~97 mil cotações diárias de empresas; o mesmo código escala.
 - **Delta Lake:** ACID, `MERGE`, time travel, `OPTIMIZE`/`ZORDER`.
-- **Databricks Free Edition:** internet restrita (daí o seed), o serverless não permite `cache()`, a escala de compute é reduzida.
+- **Databricks Free Edition:** internet restrita (daí o fallback), o serverless não permite `cache()`, a escala de compute é reduzida.
 - **Melhorias futuras:**
   - Job diário;
   - Auto Loader / Lakeflow Declarative Pipelines;

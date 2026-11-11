@@ -9,7 +9,7 @@ Este documento explica como correr e testar o notebook localmente.
 
 - O notebook corre em PySpark local sem Delta, com caminhos relativos à pasta onde o kernel corre (a do notebook, no VS Code, no
   Jupyter e no `nbconvert`). As duas pastas são geradas e estão no `.gitignore`:
-  - os ficheiros (landing e seed) ficam em `./lakehouse_oil_psi/`;
+  - os ficheiros (landing e fallback) ficam em `./lakehouse_oil_psi/`;
   - as tabelas ficam em Parquet em `./lakehouse_oil_psi/warehouse/oil_psi.db/` (`spark.sql.warehouse.dir`, definido na célula de
     configuração).
   - O catálogo local é em memória: ao reiniciar o kernel esquece as tabelas, mas as pastas Parquet ficam no disco e o `DROP TABLE`
@@ -27,12 +27,15 @@ Este documento explica como correr e testar o notebook localmente.
     - Windows: `C:\Program Files\Eclipse Adoptium`, `Java` e `Microsoft`;
   - regista uma *cell magic* `sql` e um *input transformer* que converte a 1.ª linha `%sql` em `%%sql`. As células `%sql` correm com
     `spark.sql(...)` + `display()` sem serem alteradas;
-  - copia os seeds de `dados_fonte/` para `./lakehouse_oil_psi/seed/`. Só copia os que faltam ou têm tamanho diferente;
+  - copia os ficheiros de fallback de `dados_fallback/` para `./lakehouse_oil_psi/fallback/`. Só copia os que faltam ou têm tamanho diferente;
   - com `RESET = True`, apaga as pastas Parquet das tabelas (ver acima). No Databricks basta o `DROP TABLE`.
 - As instruções `OPTIMIZE`, `DESCRIBE HISTORY` e `VERSION AS OF` só correm quando `TABLE_FORMAT == "delta"`.
 - O `display()` local imprime `toPandas()` em texto. Só os gráficos matplotlib aparecem como no Databricks.
-- Localmente a API costuma responder, o que dá dados mais recentes do que os seeds. **Não existe uma flag para forçar o modo SEED.** Para
-  reproduzir os números de [CONCLUSOES.md](CONCLUSOES.md), faz com que `_http_get` lance uma exceção.
+- Localmente as duas APIs respondem (verificado a 11-11-2026: as 21 séries em modo `API` nas 3 leituras), o que dá dados mais recentes
+  do que o fallback. **Não existe uma flag para forçar o modo FALLBACK.** Para reproduzir os números de [CONCLUSOES.md](CONCLUSOES.md),
+  faz com que `_http_get` lance uma exceção (por exemplo, trocando os URLs por um domínio inválido numa cópia do notebook).
+- Tempo de uma execução local completa: **~46 s** (era ~455 s antes da correção do User-Agent do FRED; ver
+  [ARQUITETURA.md](ARQUITETURA.md#desempenho)).
 
 ## Instalação
 

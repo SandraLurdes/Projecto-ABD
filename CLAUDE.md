@@ -13,7 +13,7 @@ resultados) está no [README.md](README.md). Não o repitas aqui.
   Verifica uma alteração com `.venv/bin/jupyter nbconvert --to notebook --execute --ExecutePreprocessor.kernel_name=projecto-abd ...`
   (ver [docs/DESENVOLVIMENTO.md](docs/DESENVOLVIMENTO.md)). Isso **não** testa o Databricks (Delta, Volumes, serverless): diz isso ao utilizador.
 - **Língua:** pt-PT em todo o texto, nos comentários e nos nomes visíveis ao utilizador.
-- **Não inventes conteúdo** (números, colunas, fontes). Se não conseguires confirmar no notebook ou nos seeds, marca com `[FLAG]`.
+- **Não inventes conteúdo** (números, colunas, fontes). Se não conseguires confirmar no notebook ou nos ficheiros de fallback, marca com `[FLAG]`.
 
 ## 2. Onde procurar
 
@@ -21,7 +21,7 @@ resultados) está no [README.md](README.md). Não o repitas aqui.
 |---|---|
 | Perceber o projeto e como se executa | [README.md](README.md) |
 | Saber o que o professor exige (enunciado, entrega, apresentação, divergências) | [Project_Instructions.md](Project_Instructions.md) |
-| Mexer nas APIs, nos seeds, no formato em bruto, ou acrescentar uma série | [docs/FONTES.md](docs/FONTES.md) |
+| Mexer nas APIs, no fallback, no formato em bruto, ou acrescentar uma série | [docs/FONTES.md](docs/FONTES.md) |
 | Mexer no fluxo entre camadas, nos batches/watermark, no `MERGE`, no reprocessamento ou no `RESET`; localizar uma função no notebook | [docs/ARQUITETURA.md](docs/ARQUITETURA.md) |
 | Mexer em colunas ou tabelas, escrever uma query, seguir a origem de uma coluna | [docs/TABELAS.md](docs/TABELAS.md) |
 | Mexer em estatísticas, veredictos, setores ou sinais esperados | [docs/METODOLOGIA.md](docs/METODOLOGIA.md) |
@@ -30,7 +30,7 @@ resultados) está no [README.md](README.md). Não o repitas aqui.
 | Ver o que falta fazer e os prazos | [docs/ESTADO.md](docs/ESTADO.md) |
 | Correr ou testar fora do Databricks (`requirements-local.txt`, `.gitignore`) | [docs/DESENVOLVIMENTO.md](docs/DESENVOLVIMENTO.md) |
 | Rever a teoria da cadeira (lakehouse, Spark, Delta) | [docs/MANUAL_ABD.md](docs/MANUAL_ABD.md) (grande: procura por secção, não o leias todo) |
-| Confirmar o formato real de uma fonte | `dados_fonte/` (seeds com o formato exato das APIs) |
+| Confirmar o formato real de uma fonte | `dados_fallback/` (cópia antiga das APIs, com o formato exato; só usada quando a API falha) |
 
 Para encontrar código no notebook, faz o dump das células com um script Python sobre o JSON e pesquisa por nome de função
 (o mapa está em [docs/ARQUITETURA.md](docs/ARQUITETURA.md#7-mapa-do-notebook-funções-por-secção)).
@@ -63,7 +63,7 @@ Na dúvida entre duas soluções, escolhe a que fica mais perto deste estilo.
 - O `.ipynb` é JSON com metadados do Databricks (`application/vnd.databricks.v1+notebook`). Para editar células usa `NotebookEdit` ou um
   script Python sobre o JSON e preserva esses metadados, para a reimportação no Databricks continuar a funcionar.
 - As células SQL começam por `%sql`.
-- **Passos de preparação vão para o código, não para instruções manuais**, e têm de ser idempotentes. Exemplos: a cópia dos seeds e a
+- **Passos de preparação vão para o código, não para instruções manuais**, e têm de ser idempotentes. Exemplos: a cópia do fallback e a
   deteção do Java (secção 0). A documentação de instalação local cobre sempre **macOS e Windows**.
 - As funções são definidas na mesma célula em que são usadas pela primeira vez. Por isso o notebook só corre **de cima para baixo**
   (Run all). Uma função nova tem de ficar antes da primeira célula que a usa.
@@ -73,8 +73,10 @@ Na dúvida entre duas soluções, escolhe a que fica mais perto deste estilo.
 - Usar `_metadata.file_path` em vez de `input_file_name()`.
 - Os Volumes estão acessíveis com `open()` / `os` do Python.
 - O MLlib é suportado (se falhar, a alternativa é o scikit-learn sobre `toPandas()`).
-- A internet só está aberta a uma lista de domínios "confiáveis". Qualquer leitura nova de uma fonte precisa de um fallback para o seed
-  ([docs/FONTES.md](docs/FONTES.md#4-acesso-à-internet-no-databricks-e-contingência-seed)).
+- A internet só está aberta a uma lista de domínios "confiáveis". Qualquer leitura nova de uma fonte precisa de um ficheiro de fallback
+  ([docs/FONTES.md](docs/FONTES.md#4-acesso-à-internet-no-databricks-e-contingência-fallback)).
+- O User-Agent é por fonte (FRED sem User-Agent próprio; Yahoo com `YAHOO_HEADERS`). Não os unifiques: o FRED deixa de responder
+  (ver [docs/FONTES.md](docs/FONTES.md)).
 
 **Método** (detalhe e justificações em [docs/METODOLOGIA.md](docs/METODOLOGIA.md))
 - Correlações, betas e testes **sempre sobre retornos logarítmicos, nunca sobre níveis**.
@@ -89,7 +91,7 @@ Quando mudares alguma coisa no notebook, atualiza o documento do tema:
 
 | Mudança no notebook | Atualizar |
 |---|---|
-| Nova série, nova API, alteração de `fetch_*` ou do seed | `docs/FONTES.md` (+ `docs/METODOLOGIA.md` se for uma empresa) |
+| Nova série, nova API, alteração de `fetch_*` ou do fallback | `docs/FONTES.md` (+ `docs/METODOLOGIA.md` se for uma empresa) |
 | Nova tabela ou coluna, mudança de tipo ou de chave | `docs/TABELAS.md` (+ `docs/ARQUITETURA.md` se mudar o fluxo) |
 | Batches, watermark, `MERGE`, `RESET`, otimização | `docs/ARQUITETURA.md` |
 | Regras estatísticas, veredicto, setores | `docs/METODOLOGIA.md` e rever `docs/CONCLUSOES.md` |

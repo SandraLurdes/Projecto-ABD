@@ -3,7 +3,7 @@
 __pycache__/
 .ipynb_checkpoints/
 
-# Lakehouse gerado na execução local (landing, seeds copiados, tabelas Parquet)
+# Lakehouse gerado na execução local (landing, cópia do fallback, tabelas Parquet)
 lakehouse_oil_psi/
 spark-warehouse/
 metastore_db/
