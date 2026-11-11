@@ -9,9 +9,12 @@ pyspark>=4.1,<5
 
 # As mesmas do requirements.txt
 requests>=2.31
-pandas>=2.2
+pandas>=2.2,<3      # o PySpark 4.x ainda não suporta oficialmente o pandas 3 (avisos FutureWarning)
 numpy>=1.26
 matplotlib>=3.8
+
+# toPandas()/display() com Arrow: mais rápido e sem o aviso "PyArrow must be installed" (no Databricks já vem instalado)
+pyarrow>=18
 
 # Kernel Jupyter (VS Code / Jupyter) e execução em linha de comandos (nbconvert)
 ipykernel

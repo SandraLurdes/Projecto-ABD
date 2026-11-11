@@ -27,6 +27,8 @@ Este documento explica como correr e testar o notebook localmente.
     - Windows: `C:\Program Files\Eclipse Adoptium`, `Java` e `Microsoft`;
   - regista uma *cell magic* `sql` e um *input transformer* que converte a 1.ª linha `%sql` em `%%sql`. As células `%sql` correm com
     `spark.sql(...)` + `display()` sem serem alteradas;
+  - cria a `SparkSession` com `spark.driver.memory=2g`, `spark.ui.showConsoleProgress=false` e `spark.log.level=ERROR` (ver
+    [Avisos na execução local](#avisos-na-execução-local));
   - copia os ficheiros de fallback de `dados_fallback/` para `./lakehouse_oil_psi/fallback/`. Só copia os que faltam ou têm tamanho diferente;
   - com `RESET = True`, apaga as pastas Parquet das tabelas (ver acima). No Databricks basta o `DROP TABLE`.
 - As instruções `OPTIMIZE`, `DESCRIBE HISTORY` e `VERSION AS OF` só correm quando `TABLE_FORMAT == "delta"`.
@@ -36,6 +38,26 @@ Este documento explica como correr e testar o notebook localmente.
   faz com que `_http_get` lance uma exceção (por exemplo, trocando os URLs por um domínio inválido numa cópia do notebook).
 - Tempo de uma execução local completa: **~46 s** (era ~455 s antes da correção do User-Agent do FRED; ver
   [ARQUITETURA.md](ARQUITETURA.md#desempenho)).
+
+## Avisos na execução local
+
+Medido a 11-11-2026 (macOS, `nbconvert`). Antes das correções, uma execução deixava **436 linhas de avisos**, quase todas nas saídas
+das células (e por isso também num HTML exportado localmente). Agora ficam só as linhas de arranque, na célula de configuração. **No
+Databricks nada disto aparece nas células:** os avisos do Spark vão para os *logs* do *driver*, e o runtime já traz o pandas 2.x e o
+PyArrow. Todas as correções estão no ramo `if not IS_DATABRICKS` ou no `requirements-local.txt`.
+
+| Aviso | Causa | Tratamento |
+|---|---|---|
+| `WARN WindowExec: No Partition Defined for Window operation!` (~400×) | Janelas globais (`Window.orderBy("date")`) sobre uma única série: são intencionais (ver [ARQUITETURA.md](ARQUITETURA.md#business-rules-silver--gold) e a nota na secção 4 do notebook) | Escondido com `spark.log.level=ERROR` |
+| `FutureWarning: PySpark does not yet fully support pandas >= 3.0.0` | pandas 3 instalado | `pandas>=2.2,<3` no `requirements-local.txt` |
+| `UserWarning: toPandas attempted Arrow optimization… PyArrow >= 18.0.0 must be installed` | faltava o PyArrow | `pyarrow>=18` no `requirements-local.txt` (o `display()` também fica mais rápido) |
+| `WARN MemoryManager: Total allocation exceeds 95%…` + `Scaling row group sizes…` | heap de 1 GB para 8–10 escritas Parquet em paralelo | `spark.driver.memory=2g` |
+| Barras `[Stage N:> (0 + 10) / 10]` | barra de progresso da consola do Spark | `spark.ui.showConsoleProgress=false` |
+| `DAGScheduler: Broadcasting large task binary`, `SparkStringUtils: Truncated the string representation of a plan`, `Utils: SparkUI could not bind on port 4040`, `Instrumentation: regParam is zero` | planos grandes (muitas colunas de janela), outro Spark aberto (ex.: o kernel do editor), regressão logística sem regularização | inofensivos; escondidos com `spark.log.level=ERROR` (mudar o `regParam` mudaria os resultados do ML) |
+| `WARNING: Using incubator modules: jdk.incubator.vector`, `NativeCodeLoader…`, `Setting default log level…` | escritos pela JVM/Spark ao arrancar, antes de o nível de log se aplicar | uma vez por kernel; ficam |
+
+Com a alteração, os números ficam iguais. A única diferença visível é que, no `display()` local, alguns nulos aparecem como `None` em
+vez de `NaN` (efeito do Arrow).
 
 ## Instalação
 
@@ -57,6 +79,7 @@ No Windows: `.venv\Scripts\jupyter ...`. No fim pode aparecer um `EOFError` do P
 | `UnsatisfiedLinkError ... NativeIO$Windows` / `HADOOP_HOME unset` (Windows) | falta o `winutils.exe` | instalar o `winutils.exe` + `hadoop.dll` e definir o `HADOOP_HOME`; sem ele, testa-se com as tabelas em vistas temporárias |
 | `Python worker failed to connect back` (Windows) | PySpark 4.0.x, ou os *workers* a usar outro Python | usar o PySpark ≥ 4.1 (o notebook já fixa o `PYSPARK_PYTHON`) |
 | `[LOCATION_ALREADY_EXISTS] Cannot name the managed table as ...` | pastas Parquet de um kernel anterior que o catálogo em memória já não conhece (`RESET = False`, ou uma versão antiga do notebook que gravava em `./spark-warehouse/`) | pôr `RESET = True` e correr de novo (Run all); a pasta antiga `./spark-warehouse/` pode ser apagada |
+| Muitos `FutureWarning` do pandas 3 ou `UserWarning` "PyArrow … must be installed" nas células | `.venv` criado antes de 11-11-2026 (pandas 3, sem PyArrow) | reinstalar: macOS `.venv/bin/pip install -r requirements-local.txt`, Windows `.venv\Scripts\pip install -r requirements-local.txt` (com `uv`: `uv pip install --python .venv -r requirements-local.txt`) e reiniciar o kernel |
 | `UsageError: Line magic function %sql not found` | a célula de configuração (secção 0) não correu nesta sessão | correr o notebook de cima para baixo (Run all) |
 
 ## Bibliotecas

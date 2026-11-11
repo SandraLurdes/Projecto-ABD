@@ -66,6 +66,12 @@ A qualidade em bruto é medida antes de normalizar (notebook 2.1): valores em fa
   volatilidade anualizada (×√252), *drawdowns*.
 - **Inflação:** o IHPC, com forward-fill nos meses ainda sem valor publicado, dá o `deflator` (o último IHPC a dividir pelo IHPC do mês)
   e daí os preços em euros de hoje.
+- **Janelas globais:** estes indicadores (e os desfasamentos do ML) usam `Window.orderBy("date" | "month_date" | "year")` **sem**
+  `partitionBy`, porque são uma única série ordenada no tempo. Particionar por ano cortaria `lag` e médias móveis na passagem de ano, e
+  a correlação PSI–Brent precisa das duas séries na mesma linha. O Spark avisa `WindowExec: No Partition Defined…` (tudo numa
+  partição); com ~7 mil dias não pesa. Onde há chave natural usa-se `partitionBy`: `latest_per_key` (Silver) e `instrument_id`
+  (secção 4.1). A nota a seguir à `gd_market_daily` (secção 4 do notebook) explica isto e distingue-o do particionamento em disco
+  por `year`.
 - **Empresas** (secção 4.1): análise mensal com o fecho ajustado do último dia de negociação, `ret_outlier`, mercado PT sem a própria
   empresa, cabaz `PT_EX_GALP` e regressões por empresa × período. As regras estatísticas estão em [METODOLOGIA.md](METODOLOGIA.md).
 
@@ -138,7 +144,9 @@ Medido localmente a 11-11-2026 (`nbconvert --execute`, Run all completo):
   - o `MERGE` é substituído por *anti-join + union*;
   - o notebook define um `display()` simples;
   - o notebook prepara sozinho o ambiente: `PYSPARK_PYTHON`, deteção do `JAVA_HOME` (macOS/Windows) e uma *cell magic* `sql` com
-    um *input transformer* que faz correr as células `%sql` com `spark.sql(...)`.
+    um *input transformer* que faz correr as células `%sql` com `spark.sql(...)`;
+  - a `SparkSession` local tem `spark.driver.memory=2g`, `spark.ui.showConsoleProgress=false` e `spark.log.level=ERROR`, para as
+    saídas das células não se encherem de avisos inofensivos (ver [DESENVOLVIMENTO.md](DESENVOLVIMENTO.md#avisos-na-execução-local)).
 - **Nos dois ambientes**, a célula do schema copia os ficheiros de fallback de `dados_fallback/` (pasta do notebook ou a pasta-mãe) para `FALLBACK`, de forma
   idempotente: só copia os que faltam ou têm tamanho diferente. No Databricks isto funciona com o repositório numa Git folder, onde a
   pasta de trabalho é a do notebook. Sem `dados_fallback/`, o *upload* para o Volume é manual.
