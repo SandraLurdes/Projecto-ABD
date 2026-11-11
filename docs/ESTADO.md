@@ -12,6 +12,7 @@
 - [x] Execução local documentada para macOS e Windows ([DESENVOLVIMENTO.md](DESENVOLVIMENTO.md)); testada em macOS a 10-11-2026 (duas execuções seguidas em kernels novos, sem erros).
 - [x] Notebook preparado para a apresentação (10-11-2026): índice com links, introdução com enquadramento, entrada no início de cada secção, fecho no fim das secções 1–5, 6.1 e 6.3 e uma nota "Como ler" a seguir a cada gráfico. Falta confirmar no Databricks que os links do índice funcionam.
 - [x] Ingestão corrigida e mais rápida (11-11-2026): User-Agent por fonte (o FRED nunca respondia e caía sempre no fallback), pedidos às APIs em paralelo e `seed` renomeado para `fallback`. Execução local: 455 s → 46 s, 21 séries em modo `API`.
+- [x] Uma só regra de janelas (`plan_windows`) para as 3 leituras e `run_pipeline` como *runner* único; introdução, 1.1 e secção 5 explicam que as 3 leituras simulam 3 dias (11-11-2026).
 - [ ] Correr **Run all** no Databricks e ver em `ctl_ingestion_log.extract_mode` se o FRED e o Yahoo respondem (`API`) ou caem no `FALLBACK`. No Databricks fica uma pasta `lake/seed/` antiga, que se pode apagar à mão.
 - [ ] Correr **Run all** no Databricks e corrigir eventuais erros específicos do serverless.
 - [ ] Criar o **AI/BI Dashboard** (secção 6.2: 5 widgets sobre as tabelas `gd_*`; especificação em [ANALISES.md](ANALISES.md#62-aibi-dashboard-por-criar-no-databricks)).

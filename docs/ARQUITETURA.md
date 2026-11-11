@@ -71,19 +71,25 @@ A qualidade em bruto é medida antes de normalizar (notebook 2.1): valores em fa
 
 ## 3. Leituras incrementais
 
-São 3 leituras (*batches*) das 21 séries:
+São 3 leituras (*batches*) das 21 séries, que simulam três dias de funcionamento numa única execução. **A janela de cada série é
+escolhida sempre pela mesma regra, `plan_windows(end_date)`** (notebook, célula 10): sem dados na Bronze, carga completa desde
+`HIST_START`; com dados, *watermark* − `OVERLAP_DAYS` → `end_date`. A 1.ª leitura corre os passos de `run_pipeline` um a um nas
+secções 1 a 4, para explicar cada camada; as outras duas chamam `run_pipeline`.
 
 | Batch | Janela | Onde |
 |---|---|---|
-| `carga_inicial` | 2000-01-01 → 2025-12-31 (`HIST_START`, `HIST_END`) | notebook 1.1, `ingest` |
+| `carga_inicial` | 2000-01-01 → 2025-12-31 (Bronze vazia → `HIST_START`; fim `HIST_END`) | notebook 1.1, `ingest(…, plan_windows(HIST_END))` + secções 2 a 4 |
 | `incremental_1` | *watermark* − 45 dias → 2026-06-30 | notebook 5, `run_pipeline` |
 | `incremental_2` | *watermark* − 45 dias → hoje | notebook 5, `run_pipeline` |
 
 - **Watermark** (`watermarks()`): a última data por série na Bronze (`max(observation_date)` no FRED e `max(ts_epoch)` no Yahoo).
+  Antes da primeira leitura a Bronze não existe e devolve `{}`.
 - **`OVERLAP_DAYS = 45`:** cada leitura recomeça 45 dias antes do watermark. Isto apanha as correções da fonte, mas gera **duplicados
   de propósito** na Bronze (65 por série diária na execução de 07-11-2026), que o `MERGE` da Silver resolve.
 - **`batch_id`** = `AAAAMMDDTHHMMSS_<6 hex>` (UTC).
-- **`run_pipeline(batch_name, end_date)`** faz API → Landing → Bronze → `build_silver(bid)` → `build_gold()` → `build_gold_equity()`.
+- **`run_pipeline(batch_name, end_date)`** faz `ingest(batch_name, plan_windows(end_date))` → `load_bronze` → `build_silver(bid)` →
+  `build_gold()` → `build_gold_equity()`. É o *runner* único: numa execução futura (com `RESET = False`, no Databricks) basta
+  `run_pipeline("diaria", hoje)`, e ele decide sozinho entre carga completa e incremental.
 
 ## 4. Upsert e reprocessamento
 
@@ -147,12 +153,12 @@ As funções são definidas na mesma célula em que são usadas pela primeira ve
 |---|---|---|
 | Cabeçalho | Título, grupo, objetivo, fontes, arquitetura, empresas | — |
 | 0 Configuração | Ambiente, schema, Volume, reset, catálogo de séries | `IS_DATABRICKS`, `TABLE_FORMAT`, `BASE`/`LANDING`/`FALLBACK`, `RESET`, `ALL_TABLES`, `FRED_SERIES`, `YAHOO_SYMBOLS`, `_eq` |
-| 1 Ingestão / Landing | Pedidos às APIs, contingência, gravação na landing, log | `YAHOO_HEADERS`, `_http_get`, `_to_epoch`, `fetch_fred`, `fetch_yahoo`, `find_fallback`, `land`, `LOG_SCHEMA`, `ingest` |
-| 1.1 1.ª leitura | Carga histórica | `HIST_START`, `HIST_END`, `all_series` |
+| 1 Ingestão / Landing | Pedidos às APIs, contingência, gravação na landing, log | `YAHOO_HEADERS`, `_http_get`, `_to_epoch`, `fetch_fred`, `fetch_yahoo`, `find_fallback`, `land`, `LOG_SCHEMA`, `ingest`, `HIST_START`, `OVERLAP_DAYS`, `all_series`, `watermarks`, `plan_windows` |
+| 1.1 1.ª leitura | Carga histórica | `HIST_END` |
 | 2 Bronze (+ 2.1 qualidade) | Carga append | `load_bronze_fred`, `load_bronze_yahoo`, `load_bronze` |
 | 3 Silver | Normalização + MERGE | `upsert`, `latest_per_key`, `_dim_row`, `normalize_fred`, `normalize_yahoo`, `SILVER_FACTS`, `build_silver` |
 | 4 Gold | Mercado diário / mensal / anual | `build_gold` |
 | 4.1 Gold empresas | Retornos mensais, sensibilidade | `OUTLIER_DAILY`, `MIN_MONTHS`, `PERIODS`, `BASKET_ID`, `_verdict`, `build_gold_equity` |
-| 5 Incrementais (+ 5.1 reprocessamento) | 2 leituras, log, comparação Bronze vs Silver, time travel | `OVERLAP_DAYS`, `watermarks`, `run_pipeline` |
+| 5 Incrementais (+ 5.1 reprocessamento) | 2 leituras, log, comparação Bronze vs Silver, time travel | `run_pipeline` |
 | 6 Análise | Queries, gráficos, dashboard, ML | ver [ANALISES.md](ANALISES.md) |
 | 7 Conclusões | Texto | ver [CONCLUSOES.md](CONCLUSOES.md) |
