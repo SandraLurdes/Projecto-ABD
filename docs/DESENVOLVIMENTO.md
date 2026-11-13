@@ -33,7 +33,7 @@ Este documento explica como correr e testar o notebook localmente.
   - com `RESET = True`, apaga as pastas Parquet das tabelas (ver acima). No Databricks basta o `DROP TABLE`.
 - As instruções `OPTIMIZE`, `DESCRIBE HISTORY` e `VERSION AS OF` só correm quando `TABLE_FORMAT == "delta"`.
 - O `display()` local imprime `toPandas()` em texto. Só os gráficos matplotlib aparecem como no Databricks.
-- Localmente as duas APIs respondem (verificado a 11-11-2026: as 21 séries em modo `API` nas 3 leituras), o que dá dados mais recentes
+- Localmente as duas APIs respondem (verificado a 11-11-2026: as 21 séries em modo `API`; a 13-11-2026, as 22, já com o Euro Stoxx 50, nas 3 leituras), o que dá dados mais recentes
   do que o fallback. **Não existe uma flag para forçar o modo FALLBACK.** Para reproduzir os números de [CONCLUSOES.md](CONCLUSOES.md),
   faz com que `_http_get` lance uma exceção (por exemplo, trocando os URLs por um domínio inválido numa cópia do notebook).
 - Tempo de uma execução local completa: **~46 s** (era ~455 s antes da correção do User-Agent do FRED; ver

@@ -22,10 +22,12 @@ tipo de gráfico, títulos, eixos, rótulos, escalas e realces.
 
 | Tema | IBCS | Nós | Porquê |
 |---|---|---|---|
-| Cor (SI 2.2, UN 5.1) | dados a preto/cinzento; cor só para realçar; verde/vermelho = bom/mau | **híbrido**: cada entidade mantém a sua cor da NOVA IMS ([ESTILO_VISUAL §3](ESTILO_VISUAL.md#3-cores-por-entidade)), mas em cada gráfico só a protagonista e 1–2 séries de comparação têm cor e o resto fica `NOVA_CINZA`. Verde e vermelho **nunca** significam bom/mau | a identidade visual da NOVA IMS é um requisito do grupo; manter a mesma cor por entidade em todos os gráficos é o próprio princípio UNIFY |
+| Cor (SI 2.2, UN 5.1) | dados a preto/cinzento; cor só para realçar; verde/vermelho = bom/mau | **híbrido**: cores da NOVA IMS por papel ([ESTILO_VISUAL §3](ESTILO_VISUAL.md#3-cores-por-papel-e-a-exceção-da-galp)): a protagonista a verde, a 2.ª série a azul, depois rosa e preto; a Galp sempre a laranja, fora dessa ordem; só a protagonista e 1–2 séries de comparação têm cor e o resto fica `NOVA_CINZA`. Verde e vermelho **nunca** significam bom/mau | a identidade visual da NOVA IMS é um requisito do grupo e a cor principal da marca deve liderar cada gráfico; a Galp, protagonista do estudo, mantém a cor da sua marca em todos os gráficos (UNIFY) |
 | Intervalos de tempo (UN 3.3) | `2000..2026` | `2000–2026` (travessão) | lê-se melhor em pt-PT |
 | Título (UN 2.2) | medida a negrito, unidade normal | título todo a negrito (rcParams) | o matplotlib não mistura pesos num `set_title`; não compensa a complexidade |
 | Grelha (SI 3.1) | substituir grelha e eixo de valores por rótulos de dados | grelha leve mantida nas séries densas (linhas, dispersão, mapa) | as próprias IBCS aceitam grelha em gráficos com muitos pontos |
+| Eixo duplo e eixo sem 0 (CH 1.1) | um só eixo de valores, a começar em 0 | 6.1, painel da esquerda: taxa EUR/USD num 2.º eixo, alinhado em dois pontos com o eixo dos preços e sem começar em 0 (assinalado no rótulo do eixo) | pedido do grupo: comparar a forma da taxa com a dos preços no mesmo gráfico |
+| Escala cortada (CH 2.1, CH 4.4) | não cortar escalas | 6.2: dispersões com escala comum de ±40%; os meses fora da escala ficam na margem, com círculo vazio, e o rodapé explica | os meses extremos de 2020 espremiam a nuvem e escondiam a relação |
 
 ## 2. Regras transversais
 
@@ -112,14 +114,14 @@ tipo de gráfico, títulos, eixos, rótulos, escalas e realces.
 | Tipo | Quando usar | Eixos | Legenda e rótulos | Cor (híbrido) | matplotlib |
 |---|---|---|---|---|---|
 | **Linhas** | evolução no tempo com muitos pontos; ≤ 3 linhas que se cruzam (**EX 1.1, EX 2.4**) | tempo na horizontal; valor a partir de 0 (ou 0/100 marcado) | nome no fim de cada linha; rotular só extremos e último valor (**UN 2.3, SI 5.3**) | protagonista com cor e 2.5 pt; comparações com cor e 1.5 pt; restantes a cinzento | `ax.annotate(nome, (x[-1], y[-1]), xytext=(6, 0), textcoords="offset points")` |
-| **Colunas** | poucos períodos (ex.: médias anuais); nunca linhas com poucos pontos (**EX 1.1**) | tempo na horizontal; base 0 | legenda no título; rótulo acima dos positivos e abaixo dos negativos; sem eixo de valores (**SI 3.1**) | uma cor (a da entidade); realce de 1 coluna se for a mensagem | `ax.bar(...)`, `ax.bar_label(barras, fmt="%.0f")`, `ax.yaxis.set_visible(False)` |
+| **Colunas** | poucos períodos (ex.: médias anuais); nunca linhas com poucos pontos (**EX 1.1**) | tempo na horizontal; base 0 | legenda no título; rótulo acima dos positivos e abaixo dos negativos; sem eixo de valores (**SI 3.1**) | uma cor (verde, ou laranja se for a Galp); realce de 1 coluna se for a mensagem | `ax.bar(...)`, `ax.bar_label(barras, fmt="%.0f")`, `ax.yaxis.set_visible(False)` |
 | **Barras simples** | comparar categorias de estrutura num período (**UN 3.4**) | categorias na vertical, ordenadas pelo critério da análise (valor ou grupo) | rótulo à direita (positivos) / à esquerda (negativos); nomes horizontais | cinzento; só a categoria da mensagem com cor | `ax.barh(...)`, `ax.bar_label(...)`, `ax.grid(axis="y", visible=False)` |
-| **Barras agrupadas** | duas medidas ou cenários por categoria (**EX 1.1**) | como as barras simples; mesma escala nas duas séries | legenda integrada por cima da primeira categoria ou com linha auxiliar (**UN 2.3**) | as duas entidades com a sua cor | `ax.barh(pos ± 0.2, ...)` |
-| **Pins** | variações relativas (%) por categoria ou período (**EX 1.1**) | como barras/colunas, traço fino com cabeça | rótulo na ponta | cor da entidade; verde/vermelho **não** (decisão do grupo) | `ax.hlines` + `ax.plot(marker="o")` |
-| **Waterfall** | decompor uma diferença em contributos (**EX 1.1**) | base e total como barras inteiras; contributos flutuantes | rótulo em cada contributo; linhas auxiliares entre barras | base/total a preto; contributos a cinzento ou na cor da entidade | `ax.bar(bottom=...)` |
+| **Barras agrupadas** | duas medidas ou cenários por categoria (**EX 1.1**) | como as barras simples; mesma escala nas duas séries | legenda integrada por cima da primeira categoria ou com linha auxiliar (**UN 2.3**) | verde e azul pela ordem de importância (a Galp a laranja) | `ax.barh(pos ± 0.2, ...)` |
+| **Pins** | variações relativas (%) por categoria ou período (**EX 1.1**) | como barras/colunas, traço fino com cabeça | rótulo na ponta | cor pela ordem de importância (a Galp a laranja); verde/vermelho como bom/mau **não** (decisão do grupo) | `ax.hlines` + `ax.plot(marker="o")` |
+| **Waterfall** | decompor uma diferença em contributos (**EX 1.1**) | base e total como barras inteiras; contributos flutuantes | rótulo em cada contributo; linhas auxiliares entre barras | base/total a preto; contributos a cinzento ou na cor da série (hierarquia do ESTILO_VISUAL) | `ax.bar(bottom=...)` |
 | **Dispersão** | relação entre duas medidas (correlação) (**EX 5.3**) | dois eixos de valor; 0 marcado nos dois | legenda junto da reta/pontos; rotular só os pontos referidos na mensagem | uma cor, alpha 0.6; a reta a preto | `ax.scatter`, `ax.axhline(0)`, `ax.axvline(0)` |
 | **Índice base 100** | comparar trajetórias com escalas diferentes (**UN 4.2**) | tempo na horizontal; linha no 100 | nome e valor final no fim de cada linha; **seta de referência** "100" à esquerda | como nas linhas | `ax.annotate("100 ▶", ...)` à esquerda do 1.º ponto |
-| ***Small multiples*** | > 3 séries cuja forma importa (**CO 5.1, EX 2.4**) | **mesma escala** em todos os painéis | nome da série no subtítulo de cada painel | uma cor por painel (a da entidade) | `plt.subplots(..., sharex=True, sharey=True)` |
+| ***Small multiples*** | > 3 séries cuja forma importa (**CO 5.1, EX 2.4**) | **mesma escala** em todos os painéis | nome da série no subtítulo de cada painel | a mesma cor em todos os painéis (verde; laranja no da Galp) | `plt.subplots(..., sharex=True, sharey=True)` |
 | **Mapa de calor** | uma grandeza em tempo × estrutura (sem notação IBCS; derivado *(nosso)*) | tempo na horizontal, estrutura na vertical (**UN 3.3, 3.4**); rótulos horizontais | barra de cores com a unidade; nomes dos grupos ao lado | escala divergente laranja–azul do ESTILO_VISUAL, centrada em 0 | `ax.imshow(..., vmin=-v, vmax=v)`, `ax.set_xticklabels(..., rotation=0)` |
 | **Tabela formatada** | consultar valores (**EX 1.2**) | tempo em colunas, estrutura em linhas (**UN 3.3**) | números alinhados à direita, sem linhas verticais (**SI 3.2**); ≤ 4 algarismos | realce de linha a verde claro (ESTILO_VISUAL §8) | `tabela_nova(...)` |
 
@@ -135,14 +137,14 @@ Ajudantes comuns, na célula de preparação (47):
 
 | Célula | Gráfico | Estado | O que foi feito (regra) |
 |---|---|---|---|
-| 49 | Brent em USD, EUR nominais e EUR reais (6.1) | cumpre | já tinha o eixo a partir de 0 e o efeito da moeda e da inflação (CH 1.1, CH 5.1, CH 5.2); legenda → nome no fim de cada linha (UN 2.3); `EUR` e datas `AAAA-MM` (UN 1.2); anotações acima do pico mais alto; fonte em rodapé (SA 4.4) |
-| 53 | Dispersão Brent EUR × ações PT (6.2) | cumpre | título descritivo, com a correlação e o *n* passados para a legenda da reta, que fica por cima do gráfico (UN 2.2); fonte em rodapé |
-| 57 | Correlação móvel PSI e cabaz (6.3) | cumpre | nomes das crises na horizontal (UN 2.3); legenda → nome no fim das linhas; período no título; fonte |
+| 49 | Brent: câmbio (USD, EUR e taxa EUR/USD) e inflação (EUR de cada ano vs EUR de 2000) (6.1) | cumpre, com desvio | eixo dos preços a partir de 0 (CH 1.1); valores rotulados nos anos-chave; **eixo duplo** na taxa EUR/USD, decisão do grupo (ver acima) |
+| 52 | Dispersão Brent EUR × ações PT: mercado + setores (6.2) | cumpre, com desvio | sem reta (relação fraca); 0 marcado nos dois eixos; uma só cor; *small multiples* por setor com a mesma escala (CH 4.1); r, r² e *n* no título de cada painel (r² explicado no rodapé); **escala cortada** a ±40% com os extremos na margem (ver acima); fonte em rodapé |
+| 56 | Correlação móvel PSI e cabaz (6.3) | cumpre | nomes das crises na horizontal (UN 2.3); legenda → nome no fim das linhas; período no título; fonte |
 | 58 | Mapa de calor da correlação 36 m (6.3) | cumpre | anos na horizontal (UN 2.3); chave de cores passou do título para a barra de cores (UN 2.2); fonte |
-| 61 | Efeito do petróleo por empresa, 2 painéis (6.4) | cumpre | cor só na Galp (protagonista) e no cabaz (comparação), o resto a cinzento, com os setores separados e nomeados à direita (SI 2.2, híbrido); painéis com a mesma escala (CH 4.1); título da figura com quem/o quê/quando (UN 2.2); a leitura das barras de erro passou para o rodapé |
-| 65 | Correlação 36 m Galp vs cabaz (6.5) | cumpre | legenda duplicada retirada (SI 4); nomes das crises na horizontal; fonte |
-| 66 | Base 100 real: Galp, cabaz, Brent (6.5) | cumpre | seta de referência "100 ▶" (UN 4.2); eixo a partir de 0; legenda duplicada retirada (SI 4); método ("com dividendos", preços reais) passou para o rodapé (UN 2.5); datas `AAAA-MM` |
-| 70 | Variação por episódio: Brent vs ações PT (6.6) | cumpre | **sem barra cortada**: a barra de +285% vai até ao limite da escala com um triângulo de outlier e o valor real em rótulo (CH 2.1, CH 4.4, UN 5.3); rótulos de dados no lugar do eixo e da grelha (SI 3.1); legenda por cima do gráfico; unidade no título; fonte |
+| 61 | Efeito do petróleo por empresa, 3 painéis A/B/C (6.4) | cumpre | cor só na Galp (protagonista) e no cabaz (comparação), o resto a cinzento, com os setores separados e nomeados à direita (SI 2.2, híbrido); painéis com a mesma escala (CH 4.1); título da figura com quem/o quê/quando (UN 2.2); painéis "A. Efeito total" e "B. Efeito próprio do petróleo" com subtítulo que explica a diferença; a leitura das barras de erro passou para o rodapé |
+| 66 | Correlação 36 m Galp vs cabaz (6.5) | cumpre | legenda duplicada retirada (SI 4); nomes das crises na horizontal; fonte |
+| 68 | Reação ao Brent: Galp vs cabaz por grupo de meses (6.5) | cumpre | colunas agrupadas para categorias ordinais; rótulos de dados no lugar do eixo e da grelha (SI 3.1); linha do zero; nº de meses no rótulo de cada grupo; legenda por cima; período no título; fonte em rodapé |
+| 73 | Variação por episódio: Brent vs ações PT (6.6) | cumpre | **sem barra cortada**: a barra de +334% (recuperação pós-COVID) vai até ao limite da escala com um triângulo de outlier e o valor real em rótulo (CH 2.1, CH 4.4, UN 5.3); rótulos de dados no lugar do eixo e da grelha (SI 3.1); legenda por cima do gráfico; unidade no título; fonte |
 | 3 | Diagrama da arquitetura | cumpre | único diagrama conceptual (EX 3.1) |
 
 As notas "Como ler" das respostas 1, 4, 5 e 6 foram ajustadas às novas cores, unidades (`EUR`) e datas.
@@ -159,7 +161,7 @@ Antes de aceitar um gráfico novo ou alterado, confirmar:
 - [ ] **Eixo de valores a partir de 0**, ou 0/100 visível e marcado; sem escala log (CH 1.1, CH 1.2).
 - [ ] **Sem barras cortadas**; outliers com marcador e o valor real (CH 2.1, CH 4.4).
 - [ ] **Mesma escala** para a mesma unidade em painéis lado a lado (CH 4.1).
-- [ ] **Cor híbrida**: cores de entidade do ESTILO_VISUAL; só a protagonista e 1–2 comparações em cor; verde/vermelho não
+- [ ] **Cor híbrida**: `cores_por_ordem` do ESTILO_VISUAL (protagonista verde, depois azul, rosa; Galp sempre laranja); só a protagonista e 1–2 comparações em cor; verde/vermelho não
   significam bom/mau (SI 2.2).
 - [ ] **≤ 3–4 linhas** que se cruzam; acima disso, *small multiples* (EX 2.4).
 - [ ] **Rótulos** só onde ajudam (extremos, último valor, valor da mensagem), com ≤ 3 algarismos (SI 5).

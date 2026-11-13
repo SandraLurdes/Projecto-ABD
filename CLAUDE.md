@@ -30,7 +30,10 @@ resultados) está no [README.md](README.md). Não o repitas aqui.
 | Ver o que falta fazer e os prazos | [docs/ESTADO.md](docs/ESTADO.md) |
 | Correr ou testar fora do Databricks (`requirements-local.txt`, `.gitignore`) | [docs/DESENVOLVIMENTO.md](docs/DESENVOLVIMENTO.md) |
 | Mexer em cores, fontes ou no aspeto de gráficos, tabelas formatadas ou diagramas | [docs/ESTILO_VISUAL.md](docs/ESTILO_VISUAL.md) |
+| Escolher o tipo de gráfico ou mexer em títulos, eixos, escalas, legendas, rótulos ou realces | [docs/IBCS_GRAFICOS.md](docs/IBCS_GRAFICOS.md) (boas práticas IBCS; o PDF está na raiz, fora do git) |
+| Escrever ou rever texto do notebook (markdown, comentários de código, mensagens `print`) | [docs/TOM_ESCRITA.md](docs/TOM_ESCRITA.md) (tom, frases, marcas de IA a evitar e checklist) |
 | Rever a teoria da cadeira (lakehouse, Spark, Delta) | [docs/MANUAL_ABD.md](docs/MANUAL_ABD.md) (grande: procura por secção, não o leias todo) |
+| Mudar o diagrama da arquitetura (célula 3) | `img/arquitetura_medallion.mmd` (fonte); regenerar o PNG (ver [docs/ARQUITETURA.md](docs/ARQUITETURA.md#1-visão-geral)) |
 | Confirmar o formato real de uma fonte | `dados_fallback/` (cópia antiga das APIs, com o formato exato; só usada quando a API falha) |
 
 Para encontrar código no notebook, faz o dump das células com um script Python sobre o JSON e pesquisa por nome de função
@@ -86,8 +89,16 @@ Na dúvida entre duas soluções, escolhe a que fica mais perto deste estilo.
 
 **Visualizações:** só as de matplotlib aparecem no HTML exportado. Os gráficos do `display()` dependem de configuração na interface.
 - **Todo o gráfico, tabela formatada ou diagrama, novo ou alterado, segue [docs/ESTILO_VISUAL.md](docs/ESTILO_VISUAL.md)**
-  (paleta e tipografia da NOVA IMS). Lê-o antes de mexer num gráfico. As cores vêm das constantes definidas lá, nunca de hex soltos;
-  uma entidade nova recebe primeiro uma cor nesse documento.
+  (paleta e tipografia da NOVA IMS). Lê-o antes de mexer num gráfico. As cores vêm das constantes definidas lá, nunca de hex soltos.
+  As cores vão **por papel** (`cores_por_ordem`): protagonista verde, 2.ª série azul, depois rosa e preto; a **Galp é sempre laranja**,
+  fora dessa ordem.
+- **Toda a alteração a um gráfico segue e revê as boas práticas IBCS de [docs/IBCS_GRAFICOS.md](docs/IBCS_GRAFICOS.md)**: tipo de
+  gráfico, título descritivo, eixos a partir de 0, sem barras cortadas, legendas integradas, texto na horizontal, formatos ISO.
+  Corre a checklist da secção 5 desse documento antes de dar o gráfico por feito; um desvio às IBCS regista-se lá primeiro.
+
+**Texto:** o notebook é lido em voz alta na apresentação.
+- **Todo o texto novo ou alterado (markdown, comentários e `print`) segue [docs/TOM_ESCRITA.md](docs/TOM_ESCRITA.md)**: assertivo,
+  objetivo, frases curtas, pt-PT, sem as marcas de escrita de IA da secção 5. Corre a checklist da secção 9 antes de dar o texto por feito.
 
 ## 5. Manter a documentação sincronizada
 
@@ -101,6 +112,8 @@ Quando mudares alguma coisa no notebook, atualiza o documento do tema:
 | Regras estatísticas, veredicto, setores | `docs/METODOLOGIA.md` e rever `docs/CONCLUSOES.md` |
 | Queries, gráficos, ML, dashboard | `docs/ANALISES.md` |
 | Cores, fontes ou aspeto de um gráfico/tabela, nova entidade com cor | `docs/ESTILO_VISUAL.md` |
+| Gráfico novo ou alterado (tipo, títulos, eixos, rótulos) | a avaliação (secção 4) de `docs/IBCS_GRAFICOS.md` |
+| Texto novo ou reescrito (markdown, comentários, `print`) | a checklist (secção 9) de `docs/TOM_ESCRITA.md`; uma regra de tom nova entra lá primeiro |
 | Números (nova execução) | `docs/CONCLUSOES.md` **e** "Principais resultados" no `README.md` (é o único sítio onde os números se repetem de propósito) |
 | Passos de execução no Databricks | "Como executar" no `README.md` |
 | Novo ficheiro ou pasta na raiz | a árvore do `README.md` e a tabela da secção 2 deste ficheiro |

@@ -1,0 +1,39 @@
+---
+config:
+  flowchart:
+    htmlLabels: true
+    useMaxWidth: false
+    wrappingWidth: 300
+    nodeSpacing: 30
+    rankSpacing: 50
+    curve: linear
+  themeVariables:
+    edgeLabelBackground: "#ffffff"
+  themeCSS: ".edgeLabel { font-style: italic; color: #4a5560; font-size: 14px; } .edgeLabel p, .edgeLabel span { padding: 0 5px; }"
+---
+flowchart LR
+    APIS["<b>APIs</b><br/>FRED · Yahoo"]
+    LANDING["<b>LANDING</b><br/>ficheiros em bruto"]
+    BRONZE["<b>BRONZE</b><br/>histórico das leituras"]
+    SILVER["<b>SILVER</b><br/>dados limpos"]
+    GOLD["<b>GOLD</b><br/>tabelas de análise"]
+    ANALISE["<b>ANÁLISE</b><br/>SQL · gráficos · ML"]
+
+    APIS -- "<b>ler</b><br/>3 leituras" --> LANDING
+    LANDING -- "<b>acrescentar</b>" --> BRONZE
+    BRONZE -- "<b>limpar</b><br/>+ MERGE" --> SILVER
+    SILVER -- "<b>calcular</b><br/>retornos, agregações" --> GOLD
+    GOLD --> ANALISE
+
+    classDef fonte fill:#eef2f7,stroke:#5b6b80,color:#1f2933
+    classDef landing fill:#f4f4f4,stroke:#8a8a8a,color:#1f2933
+    classDef bronze fill:#f3dcc4,stroke:#a0612b,color:#3d2410
+    classDef silver fill:#e6e9ec,stroke:#7d8791,color:#1f2933
+    classDef gold fill:#f8e7a8,stroke:#b8901c,color:#3d3005
+    classDef analise fill:#dcefe2,stroke:#3f8a5a,color:#173222
+    class APIS fonte
+    class LANDING landing
+    class BRONZE bronze
+    class SILVER silver
+    class GOLD gold
+    class ANALISE analise

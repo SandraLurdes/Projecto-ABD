@@ -13,7 +13,7 @@ Os tipos vêm do código do notebook (casts, `StructType`, funções do Spark).
 | Controlo | [`ctl_ingestion_log`](#ctl_ingestion_log) | série × leitura | append | — | `ingest` |
 | Bronze | [`bz_fred_observations`](#bz_fred_observations) | série × data × leitura | append | `_ingest_date` | `load_bronze_fred` |
 | Bronze | [`bz_yahoo_chart`](#bz_yahoo_chart) | símbolo × timestamp × leitura | append | `_ingest_date` | `load_bronze_yahoo` |
-| Silver | [`sv_dim_instrument`](#sv_dim_instrument) | `instrument_id` | MERGE | — | célula 24 (`_dim_row`) |
+| Silver | [`sv_dim_instrument`](#sv_dim_instrument) | `instrument_id` | MERGE | — | célula 25 (`_dim_row`) |
 | Silver | [`sv_fact_price_daily`](#sv_fact_price_daily-sv_fact_pt_shares_monthly-sv_fact_cpi_monthly) | `instrument_id`, `date` | MERGE | — | `build_silver` |
 | Silver | [`sv_fact_pt_shares_monthly`](#sv_fact_price_daily-sv_fact_pt_shares_monthly-sv_fact_cpi_monthly) | `instrument_id`, `month_date` | MERGE | — | `build_silver` |
 | Silver | [`sv_fact_cpi_monthly`](#sv_fact_price_daily-sv_fact_pt_shares_monthly-sv_fact_cpi_monthly) | `instrument_id`, `month_date` | MERGE | — | `build_silver` |
@@ -31,7 +31,7 @@ A tabela `sv_fact_psi_daily` é de uma versão anterior e já não é criada. Es
 ## Controlo
 
 ### `ctl_ingestion_log`
-Schema explícito em `LOG_SCHEMA` (célula 10). Tem uma linha por série e por leitura.
+Schema explícito em `LOG_SCHEMA` (célula 11). Tem uma linha por série e por leitura.
 
 | Coluna | Tipo | Descrição |
 |---|---|---|
@@ -91,7 +91,7 @@ Colunas técnicas comuns aos factos:
 - `_updated_ts` (ts, a hora da normalização).
 
 ### `sv_dim_instrument`
-São 21 linhas, construídas a partir de `FRED_SERIES` + `YAHOO_SYMBOLS` (o schema é declarado em string na célula 24).
+São 21 linhas, construídas a partir de `FRED_SERIES` + `YAHOO_SYMBOLS` (o schema é declarado em string na célula 25).
 
 | Coluna | Tipo | Descrição |
 |---|---|---|
@@ -166,7 +166,7 @@ Uma linha por mês, desde 2000.
 | `brent_eur_eom`, `psi_eom` | double | Valor no último dia do mês |
 | `psi_avg` | double | Média mensal do PSI |
 | `pt_shares_idx` | double | Índice OCDE de ações PT (de `sv_fact_pt_shares_monthly`) |
-| `ret_brent_eur_m`, `ret_pt_shares_m`, `ret_psi_m` | double | Variação mensal **simples** (`x / lag(x) − 1`). Brent e OCDE sobre médias; PSI sobre o fim do mês |
+| `ret_brent_eur_m`, `ret_pt_shares_m`, `ret_psi_m` | double | Retorno mensal **logarítmico** (`log(x / lag(x))`). Brent (`brent_eur_eom`) e PSI (`psi_eom`) no fim do mês; o índice OCDE só existe como média mensal (limitação da fonte). Antes de 13-11-2026 eram variações simples sobre médias |
 | `yoy_brent_eur`, `yoy_pt_shares` | double | Variação face ao mesmo mês do ano anterior |
 | `year` | int | |
 | `hicp_publicado` | double | IHPC publicado (nulo nos meses ainda sem valor) |
@@ -208,10 +208,10 @@ Uma linha por empresa × mês. Inclui o cabaz `PT_EX_GALP` (as outras 14 empresa
 | `brent_eur_eom` | double | Brent EUR no último dia do mês |
 | `ret_brent_eur_m` | double | Retorno logarítmico mensal do Brent EUR |
 | `ret_brent_eur_m_lag1..3` | double | O mesmo, 1, 2 e 3 meses antes |
+| `ret_europa_m` | double | Retorno logarítmico mensal do Euro Stoxx 50 (`^STOXX50E`, fecho do último dia do mês); nulo antes de 2007-04 |
 | `corr_36m_brent` | double | Correlação móvel de 36 meses `ret_m_stat` × `ret_brent_eur_m` (só com ≥ 30 pares) |
 
-Nota: `gd_market_monthly.ret_brent_eur_m` (simples, sobre médias) e `gd_equity_monthly.ret_brent_eur_m`
-(logarítmico, sobre o fim do mês) têm **o mesmo nome mas são definidos de forma diferente**.
+Desde 13-11-2026, `gd_market_monthly.ret_brent_eur_m` e `gd_equity_monthly.ret_brent_eur_m` têm a mesma definição (logarítmico, fim do mês).
 
 ### `gd_oil_sensitivity`
 Uma linha por empresa (+ o cabaz) × período, com `PERIODS` = `Total 2000-2026`, `2000-2007`, `2008-2013`, `2014-2019` e `2020-2026`.
@@ -228,7 +228,10 @@ Cada mês entra no total e no seu subperíodo. As regressões são calculadas co
 | `beta`, `se_beta`, `t_beta` | double | `ret_ação ~ ret_brent_eur` (nulo se `n_meses < 24`) |
 | `beta_sem_mercado`, `se_beta_sem_mercado`, `t_beta_sem_mercado` | double | Coeficiente do Brent em `ret_ação ~ ret_brent_eur + ret_mercado_pt` |
 | `beta_mercado` | double | Coeficiente do mercado PT na mesma regressão |
-| `veredicto`, `veredicto_sem_mercado` | str | `Confirma` / `Contraria` / `Sem efeito significativo` / `Dados insuficientes` (`_verdict`; regras em [METODOLOGIA.md](METODOLOGIA.md)) |
+| `n_meses_europa` | long | Meses com `ret_m_stat`, `ret_brent_eur_m` e `ret_europa_m` (2007-04+) |
+| `beta_sem_europa`, `se_beta_sem_europa`, `t_beta_sem_europa` | double | Coeficiente do Brent em `ret_ação ~ ret_brent_eur + ret_europa_m` (efeito C; agregação à parte, só nos meses com Euro Stoxx 50) |
+| `beta_europa` | double | Coeficiente da bolsa europeia na mesma regressão |
+| `veredicto`, `veredicto_sem_mercado`, `veredicto_sem_europa` | str | `Confirma` / `Contraria` / `Sem efeito significativo` / `Dados insuficientes` (`_verdict`; regras em [METODOLOGIA.md](METODOLOGIA.md)) |
 
 ---
 

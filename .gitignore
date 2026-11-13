@@ -14,3 +14,6 @@ derby.log
 
 # Saída de execuções locais com nbconvert
 run_local.ipynb
+
+# Norma IBCS em PDF (cópia licenciada a um elemento do grupo; ver docs/IBCS_GRAFICOS.md)
+IBCS_*.pdf

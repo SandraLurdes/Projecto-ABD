@@ -21,11 +21,13 @@ Criar um processo de análise de dados **estruturado e incremental**, que repliq
 > Para a Galp o petróleo é receita; para as outras empresas é um custo.
 
 ### Perguntas de análise
-1. Como evoluiu o preço do petróleo desde 2000, em dólares, em euros e em euros a preços de hoje (descontando a inflação)?
-2. O mercado acionista português acompanha o petróleo? Em que períodos a relação é mais forte?
-3. Como reage cada empresa ao petróleo, mês a mês? A Galp comporta-se de forma diferente das restantes? E depois de descontar o movimento geral da bolsa?
-4. Como se comportaram os mercados nas grandes crises (2008, 2014-16, COVID-19, guerra na Ucrânia)?
-5. Os movimentos do petróleo ajudam a explicar ou a prever os movimentos do PSI?
+1. O Brent está hoje mais caro do que em 2000, em dólares, em euros e descontada a inflação?
+2. A bolsa portuguesa desce quando o Brent sobe?
+3. A ligação entre a bolsa portuguesa e o Brent muda ao longo do tempo?
+4. O Brent penaliza as empresas portuguesas, com exceção da Galp?
+5. A Galp reage ao Brent de forma diferente das restantes empresas?
+6. Nas crises de 2008, da COVID-19 e da guerra na Ucrânia, a bolsa portuguesa acompanhou o Brent?
+7. O Brent explica os movimentos diários do PSI e permite antecipá-los?
 
 As empresas, o sinal esperado por setor e as regras de análise estão em [docs/METODOLOGIA.md](docs/METODOLOGIA.md).
 
@@ -38,7 +40,7 @@ Projecto-ABD/
 ├── Lakehouse_Petroleo_PSI.ipynb   # entregável: notebook importado no Databricks
 ├── dados_fallback/                # 21 ficheiros de contingência com o formato das APIs (cópia de 07-11-2026), só usados se a API falhar
 │   ├── fred_<série>.csv           # 5 séries FRED (Brent, WTI, EUR/USD, índice OCDE ações PT, IHPC Portugal)
-│   └── yahoo_<símbolo>.json       # 16 séries Yahoo (PSI + 15 empresas)
+│   └── yahoo_<símbolo>.json       # 17 séries Yahoo (PSI, Euro Stoxx 50 e 15 empresas)
 ├── docs/
 │   ├── FONTES.md                  # fontes externas, pedidos às APIs e schema das respostas em bruto
 │   ├── ARQUITETURA.md             # processo medallion, leituras incrementais, reprocessamento, mapa do notebook
@@ -46,15 +48,18 @@ Projecto-ABD/
 │   ├── METODOLOGIA.md             # hipótese, empresas e setores, regras estatísticas, limitações
 │   ├── ANALISES.md                # queries, gráficos, dashboard e modelos de ML
 │   ├── ESTILO_VISUAL.md           # paleta, tipografia e aspeto NOVA IMS dos gráficos e tabelas
+│   ├── IBCS_GRAFICOS.md           # boas práticas IBCS: escolha do gráfico, títulos, eixos, rótulos e checklist
+│   ├── TOM_ESCRITA.md             # tom e regras de escrita do texto do notebook (apresentação)
 │   ├── CONCLUSOES.md              # resultados e conclusões
 │   ├── ESTADO.md                  # checklist e prazos
 │   ├── DESENVOLVIMENTO.md         # correr e testar fora do Databricks
 │   └── MANUAL_ABD.md              # manual de estudo da cadeira (teoria: lakehouse, Spark, Delta)
+├── img/                           # diagrama da arquitetura (fonte Mermaid .mmd + PNG mostrado no notebook)
 ├── Project_Instructions.md        # enunciado do professor (aula 7 + regras de entrega e apresentação)
 ├── CLAUDE.md                      # instruções para o assistente Claude Code (não é preciso para ler o projeto)
 ├── requirements.txt               # bibliotecas usadas (já incluídas no Databricks)
 ├── requirements-local.txt         # bibliotecas para correr localmente (PySpark + Jupyter)
-├── .gitignore                     # exclui o .venv/ e o lakehouse local (lakehouse_oil_psi/)
+├── .gitignore                     # exclui o .venv/, o lakehouse local (lakehouse_oil_psi/) e o PDF da norma IBCS
 └── README.md
 ```
 
@@ -62,9 +67,9 @@ Projecto-ABD/
 
 ## Fontes de dados
 
-São 21 séries gratuitas e sem chave:
+São 22 séries gratuitas e sem chave:
 - **FRED:** Brent, WTI, EUR/USD, o índice OCDE de ações portuguesas e o IHPC de Portugal;
-- **Yahoo Finance:** o índice PSI e 15 empresas cotadas.
+- **Yahoo Finance:** o índice PSI, o Euro Stoxx 50 (bolsa europeia) e 15 empresas cotadas.
 
 Não existe PSI diário gratuito antes de 2013; por isso usam-se também o índice mensal da OCDE e as cotações das empresas.
 Como o Databricks Free Edition restringe o acesso à internet, o notebook usa ficheiros de *fallback* (uma cópia antiga das respostas) quando a API falha. A fonte principal é sempre a API.
@@ -114,7 +119,7 @@ As bibliotecas usadas (`pyspark`, `requests`, `pandas`, `numpy`, `matplotlib`) j
    21 ficheiros de fallback de `dados_fallback/` para `/Volumes/workspace/oil_psi/lake/fallback/`. A cópia é idempotente: só copia o que falta.
 3. *Só se o notebook foi importado sem a Git folder:* em **Catalog → workspace → oil_psi → Volumes → lake**, criar a pasta `fallback` e fazer *upload* dos **21 ficheiros** de `dados_fallback/`.
 4. Correr **Run all**. Com `RESET = True` todas as tabelas e a landing são apagadas e reconstruídas (o fallback é mantido).
-5. Criar o **AI/BI Dashboard** (*New → Dashboard*) sobre as tabelas `gd_*` (widgets propostos na secção 6.2 do notebook; especificação em [docs/ANALISES.md](docs/ANALISES.md)).
+5. Criar o **AI/BI Dashboard** (*New → Dashboard*) sobre as tabelas `gd_*` (widgets propostos na introdução da secção 6 do notebook; especificação em [docs/ANALISES.md](docs/ANALISES.md)).
 6. Exportar o notebook em **HTML** (*File → Export → HTML*) para a entrega.
 
 ### B. Local (só para testes)
@@ -177,13 +182,13 @@ Problemas comuns e detalhes: [docs/DESENVOLVIMENTO.md](docs/DESENVOLVIMENTO.md).
 
 ## Principais resultados
 
-_Execução local de 07-11-2026 com os ficheiros de fallback (PySpark 4.3, modo forçado, então chamado SEED). Os números devem ser confirmados depois da execução no Databricks._
+_Execução local de 13-11-2026 com as APIs (PySpark 4.3). Os números devem ser confirmados depois da execução no Databricks._
 
-- **Galp — confirma a hipótese.** Num mês em que o Brent (EUR) sobe 10%, a Galp sobe em média +2,7% (t = 7,1), e +2,1% descontando a bolsa (t = 5,6).
-- **As outras 14 — não confirmam no efeito total.** Todas têm correlação positiva com o petróleo e o cabaz sem a Galp sobe +1,0% por cada +10% no Brent (t = 4,3): petróleo e bolsa seguem o mesmo ciclo económico.
-- **Descontando o movimento da bolsa**, 7 das 14 ficam negativas; a REN e os CTT confirmam a hipótese de forma significativa.
-- **A relação depende do tipo de choque:** juntos nas crises de procura (2020–22); no choque de 2025–26 a correlação de 36 meses do cabaz sem a Galp caiu para −0,32, enquanto a Galp ficou em +0,50.
-- **Prever o PSI com o petróleo não funciona:** R² de 5% e um Random Forest abaixo da regra ingénua "sobe sempre" (AUC 0,44).
+- **Galp: confirma a hipótese.** Num mês em que o Brent (EUR) sobe 10%, a Galp sobe em média +2,7% (t = 7,1), e +2,1% descontando a bolsa portuguesa (t = 5,7).
+- **As outras 14 não confirmam no efeito total.** Todas têm correlação positiva com o petróleo e o cabaz sem a Galp sobe +1,0% por cada +10% no Brent (t = 4,2): petróleo e bolsa seguem o mesmo ciclo económico.
+- **Descontando a bolsa portuguesa**, 7 das 14 ficam negativas, mas só a REN e os CTT de forma significativa. Descontando a bolsa europeia, nenhuma desce de forma significativa.
+- **A relação depende do tipo de choque:** juntos nas crises de procura (correlação de 36 meses do cabaz sem a Galp em 0,73 no fim de 2020); no choque de 2026 caiu para −0,34, enquanto a Galp ficou em +0,50.
+- **O petróleo explica pouco do PSI e não o antecipa:** R² de 7,3% em 2013–2023, negativo em 2024–2026, e um Random Forest abaixo da regra ingénua "sobe sempre" (AUC 0,44).
 
 → Todos os resultados e o mapa das conclusões do notebook: [docs/CONCLUSOES.md](docs/CONCLUSOES.md).
 

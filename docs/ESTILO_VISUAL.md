@@ -34,35 +34,47 @@ Neutros auxiliares (não fazem parte do guia da NOVA IMS; servem a estrutura do 
 | `NOVA_FUNDO` | `#FFFFFF` | fundo de figuras e tabelas |
 
 Regras de uso:
-- O **verde** é a cor da marca: cabe à série principal da história (no nosso caso, o petróleo). O **azul** é a segunda cor.
-- Rosa, amarelo, laranja e preto são acentos: usam-se quando há mais séries ou categorias.
+- O **verde** é a cor da marca: cabe à série principal (protagonista) de cada gráfico. O **azul** é a segunda cor.
+- Rosa e preto são as cores seguintes, quando há mais séries. O amarelo só serve para áreas. O laranja está reservado para a Galp e
+  para o polo negativo da escala divergente ([secção 3](#3-cores-por-papel-e-a-exceção-da-galp)).
 - O texto é sempre preto ou cinzento. Nunca se escreve texto a cores (o verde e o amarelo têm pouco contraste sobre branco).
 - Nunca se usam hex soltos num gráfico: usam-se as constantes da [secção 7](#7-código-de-referência).
 
-## 3. Cores por entidade
+## 3. Cores por papel (e a exceção da Galp)
 
-A mesma entidade tem **sempre a mesma cor**, em todos os gráficos do notebook e no dashboard.
+A cor de uma série depende do **papel que tem no gráfico**, não da entidade. Em cada gráfico, as séries ordenam-se por importância e
+recebem as cores da hierarquia (`HIERARQUIA`), por esta ordem:
 
-| Entidade | Constante | Cor |
+| Ordem | Cor | Constante |
 |---|---|---|
-| Brent (EUR) | `C_BRENT` | verde `#67DD7D` |
-| Galp | `C_GALP` | azul `#4875F6` |
-| Mercado português (PSI, índice OCDE de ações PT) | `C_MERCADO` | rosa `#EA3399` |
-| Cabaz sem Galp | `C_CABAZ` | laranja `#EB512D` |
-| Brent em dólares | `C_USD` | preto `#000000` |
-| Valores nominais (EUR de cada ano) | `C_NOMINAL` | cinzento `#8C8C8C` |
+| 1.ª (protagonista, a linha mais grossa) | verde `#67DD7D` | `HIERARQUIA[0]` |
+| 2.ª | azul `#4875F6` | `HIERARQUIA[1]` |
+| 3.ª | rosa `#EA3399` | `HIERARQUIA[2]` |
+| 4.ª | preto `#000000` | `HIERARQUIA[3]` |
+| contexto ("os outros") | cinzento `#8C8C8C` | `NOVA_CINZA` |
 
-Setores (`SECTOR_COLORS`, pela ordem de `SECTOR_ORDER`):
+**Exceção da Galp:** a Galp é **sempre laranja** `#EB512D` (`C_GALP`, a cor da marca Galp), seja qual for o seu papel. Fica fora da
+hierarquia e não ocupa lugar nela: as outras séries continuam a receber verde, azul, rosa… pela sua ordem. Exemplo: Galp + cabaz →
+Galp laranja, cabaz verde; Galp + cabaz + Brent → laranja, verde, azul.
 
-| Setor | Cor | Nota |
-|---|---|---|
-| Petróleo e gás | azul `#4875F6` | igual à Galp |
-| Eletricidade e redes | amarelo `#F1DB49` | |
-| Indústria exportadora | rosa `#EA3399` | |
-| Consumo e retalho | verde `#67DD7D` | não aparece no mesmo gráfico que o Brent |
-| Serviços domésticos | cinzento `#8C8C8C` | |
-| Exposição a países petrolíferos | preto `#000000` | |
-| Cabaz sem Galp | laranja `#EB512D` | igual à linha do cabaz |
+No código, as cores atribuem-se com `cores_por_ordem(*series)`, que aplica a hierarquia e a exceção
+([secção 7](#7-código-de-referência)). Uma entidade pode ter cores diferentes em gráficos diferentes; por isso as linhas levam rótulo
+direto e cada "Como ler" diz as cores daquele gráfico. Dentro da mesma figura (vários painéis), a mesma série tem a mesma cor.
+
+Aplicação atual (secção 6 do notebook):
+
+| Gráfico | Verde (1.ª) | Azul (2.ª) | Rosa (3.ª) | Laranja (Galp) | Cinzento |
+|---|---|---|---|---|---|
+| 6.1 câmbio | Brent em USD | Brent em EUR | taxa EUR/USD | | |
+| 6.1 inflação | Brent em euros de 2000 | Brent em EUR (nominal) | | | |
+| 6.2 dispersão | mercado e setores | | | painel da Galp | |
+| 6.3 correlação móvel | cabaz sem Galp | PSI | | | |
+| 6.4 efeito por empresa | cabaz sem Galp | | | Galp | as outras empresas |
+| 6.5 correlação Galp vs. cabaz | cabaz sem Galp | | | Galp | |
+| 6.5 reação ao Brent | cabaz sem Galp | | | Galp | |
+| 6.6 episódios | Brent (EUR) | ações PT | | | |
+
+Os setores não têm cor: servem só para ordenar e agrupar as empresas (`SECTOR_ORDER`).
 
 Escalas:
 - **Divergente** (correlações, de −1 a +1): laranja `#EB512D` → `#F2F2F2` → azul `#4875F6`. Valores em falta a branco.
@@ -75,7 +87,8 @@ Por isso:
 - num mesmo gráfico, a cor nunca é a única forma de distinguir séries: rotular as linhas diretamente no fim (como já se faz com
   `ax.annotate`) e variar a espessura (protagonista mais grossa) ou o estilo (`--` para a série de comparação);
 - o par laranja–azul é o único seguro para codificar "negativo vs positivo", por isso é o do mapa divergente;
-- nos gráficos de barras por setor, a legenda vem sempre acompanhada da ordem dos setores no eixo (barras agrupadas por setor).
+- nos gráficos de barras por empresa, as empresas ficam agrupadas por setor, com separadores e o nome do setor ao lado do grupo; só a
+  Galp e o cabaz levam cor (ver [IBCS_GRAFICOS.md](IBCS_GRAFICOS.md)).
 
 ## 5. Tipografia
 
@@ -108,14 +121,18 @@ Os títulos escrevem-se em frase ("Brent 2000–2026: …"), nunca em maiúscula
 - Grelha leve (`NOVA_CINZA_GRELHA`, 0.6 pt). Nos gráficos de barras horizontais, só a grelha vertical.
 - Linhas: 1.5 pt para as séries normais, **2.5 pt para a protagonista**. Pontos de dispersão com `alpha` 0.6.
 - Linhas de referência (zero, base 100) a preto, 0.8 pt.
-- Faixas de crises em `NOVA_CINZA_GRELHA`, com o nome a `NOVA_CINZA_TEXTO`, 8 pt, na vertical.
+- Faixas de crises em `NOVA_CINZA_GRELHA`, com o nome a `NOVA_CINZA_TEXTO`, 8 pt, na horizontal (em dois níveis).
 - Legendas sem moldura; sempre que couber, rótulo direto no fim da linha em vez de legenda.
-- Um gráfico responde a uma pergunta: no máximo 4 séries de cor; o resto vai a cinzento.
+- Um gráfico responde a uma pergunta: a protagonista e no máximo 1–2 séries de comparação têm cor; o resto vai a `NOVA_CINZA`
+  (regra híbrida acordada com as IBCS, ver [IBCS_GRAFICOS.md](IBCS_GRAFICOS.md#decisões-do-grupo-onde-nos-afastamos-das-ibcs)).
+- O verde e o vermelho/laranja nunca significam "bom" ou "mau": o verde marca a protagonista e o laranja a Galp (ou o polo negativo
+  da escala divergente).
 
 ## 7. Código de referência
 
 Aplicado (13-11-2026) na célula de preparação dos gráficos da secção 6 do notebook, que define estas constantes para todos os gráficos.
-O mapa de calor da 6.3 usa `CMAP_DIVERGENTE`; as notas "Como ler" descrevem as cores por estes nomes (verde, azul, rosa, laranja).
+Cada gráfico obtém as cores das suas séries com `cores_por_ordem(...)`, pela ordem de importância (ver a [secção 3](#3-cores-por-papel-e-a-exceção-da-galp)).
+O mapa de calor da 6.3 usa `CMAP_DIVERGENTE`; as notas "Como ler" descrevem as cores de cada gráfico por estes nomes (verde, azul, rosa, laranja).
 
 ```python
 # Estilo visual NOVA IMS (docs/ESTILO_VISUAL.md): paleta, tipografia e aspeto comuns a todos os gráficos
@@ -127,13 +144,18 @@ NOVA_ROSA, NOVA_AMARELO, NOVA_LARANJA, NOVA_PRETO = "#EA3399", "#F1DB49", "#EB51
 NOVA_CINZA, NOVA_CINZA_TEXTO, NOVA_CINZA_EIXO = "#8C8C8C", "#595959", "#BFBFBF"
 NOVA_CINZA_GRELHA, NOVA_CINZA_FUNDO, NOVA_FUNDO = "#E6E6E6", "#F2F2F2", "#FFFFFF"
 
-# Cores por entidade: a mesma em todos os gráficos
-C_BRENT, C_GALP, C_MERCADO, C_CABAZ = NOVA_VERDE, NOVA_AZUL, NOVA_ROSA, NOVA_LARANJA
-C_USD, C_NOMINAL = NOVA_PRETO, NOVA_CINZA
-SECTOR_COLORS = {"Petróleo e gás": NOVA_AZUL, "Eletricidade e redes": NOVA_AMARELO, "Indústria exportadora": NOVA_ROSA,
-                 "Consumo e retalho": NOVA_VERDE, "Serviços domésticos": NOVA_CINZA,
-                 "Exposição a países petrolíferos": NOVA_PRETO, "Cabaz sem Galp": NOVA_LARANJA}
-SECTOR_ORDER = list(SECTOR_COLORS)
+# Cores por papel em cada gráfico: protagonista verde, 2.ª série azul, depois rosa e preto; o contexto a cinzento.
+# A Galp é a exceção: sempre laranja (a cor da marca Galp), fora da hierarquia, que continua igual para as outras séries
+HIERARQUIA = [NOVA_VERDE, NOVA_AZUL, NOVA_ROSA, NOVA_PRETO]
+C_GALP = NOVA_LARANJA
+
+def cores_por_ordem(*series):
+    """Cor de cada série, pela ordem de importância no gráfico; a Galp leva C_GALP e não ocupa lugar na hierarquia."""
+    resto = iter(HIERARQUIA)
+    return [C_GALP if s in ("Galp", "GALP.LS") else next(resto) for s in series]
+
+SECTOR_ORDER = ["Petróleo e gás", "Eletricidade e redes", "Indústria exportadora", "Consumo e retalho",
+                "Serviços domésticos", "Exposição a países petrolíferos", "Cabaz sem Galp"]
 
 CMAP_DIVERGENTE = LinearSegmentedColormap.from_list("nova_div", [NOVA_LARANJA, NOVA_CINZA_FUNDO, NOVA_AZUL])
 CMAP_DIVERGENTE.set_bad(NOVA_FUNDO)
@@ -149,7 +171,7 @@ plt.rcParams.update({
     "axes.labelsize": 10, "axes.labelcolor": NOVA_CINZA_TEXTO,
     "xtick.labelsize": 9, "ytick.labelsize": 9, "xtick.color": NOVA_CINZA_TEXTO, "ytick.color": NOVA_CINZA_TEXTO,
     "legend.fontsize": 9, "legend.frameon": False,
-    "lines.linewidth": 1.5, "axes.prop_cycle": plt.cycler(color=[NOVA_VERDE, NOVA_AZUL, NOVA_ROSA, NOVA_LARANJA, NOVA_PRETO]),
+    "lines.linewidth": 1.5, "axes.prop_cycle": plt.cycler(color=HIERARQUIA),
 })
 ```
 
@@ -160,7 +182,7 @@ Nos gráficos, a protagonista leva `lw=2.5`; as linhas de referência `color=NOV
 
 - O `display()` de um DataFrame Spark é desenhado pelo Databricks e **não se pode estilizar**: as tabelas de verificação e de
   controlo ficam assim.
-- As tabelas que vão para a apresentação ou que têm de sair formatadas no HTML exportado passam a pandas e usam um `Styler`:
+- As tabelas que vão para a apresentação ou que têm de sair formatadas no HTML exportado passam a pandas e usam um `Styler` (a função `tabela_nova` está definida na célula de preparação da secção 6 e é usada nas tabelas de resultados da secção 6: correlações (6.2), veredictos (6.4), episódios (6.6) e modelos de ML (6.7)):
 
 ```python
 # Tabela no estilo NOVA IMS (para tabelas pequenas de resultados)
@@ -181,8 +203,8 @@ def tabela_nova(pdf, destacar=None, casas=2):
 - Cabeçalho preto com texto branco, linhas alternadas `NOVA_CINZA_FUNDO`, números à direita, texto à esquerda.
 - Realce de linhas importantes com verde claro `#D9F6DF` (o verde da marca a 25 %, para o texto preto continuar legível).
 
-**AI/BI Dashboard:** nas definições de cada widget, usar os hex da [secção 3](#3-cores-por-entidade) para as mesmas entidades
-(Brent verde, Galp azul, PSI rosa, cabaz laranja) e a escala divergente laranja–azul nas correlações.
+**AI/BI Dashboard:** nas definições de cada widget, aplicar a mesma regra da [secção 3](#3-cores-por-papel-e-a-exceção-da-galp):
+a série principal do widget a verde, a segunda a azul, depois rosa e preto; a Galp sempre a laranja; a escala divergente laranja–azul nas correlações.
 
 ## 9. Diagramas
 
@@ -194,7 +216,10 @@ azul da NOVA IMS clareados. Depois de mudar o `.mmd`, regenerar o PNG (ver [ARQU
 
 **Qualquer gráfico, tabela formatada ou diagrama do projeto, novo ou alterado, segue este documento.**
 - As cores vêm das constantes da [secção 7](#7-código-de-referência), nunca de hex escritos no gráfico.
-- Uma entidade nova (série, setor, categoria) recebe uma cor aqui, na [secção 3](#3-cores-por-entidade), antes de aparecer num gráfico.
+- As cores das séries seguem a hierarquia por papel da [secção 3](#3-cores-por-papel-e-a-exceção-da-galp) (`cores_por_ordem`), com a Galp
+  sempre a laranja; um gráfico novo ou alterado entra na tabela "Aplicação atual" dessa secção.
 - Se uma alteração precisar de fugir a estas regras, muda-se primeiro este documento e só depois o gráfico.
+- **Além das cores e fontes, todo o gráfico novo ou alterado segue e revê as boas práticas IBCS de [IBCS_GRAFICOS.md](IBCS_GRAFICOS.md)**
+  (tipo de gráfico, títulos, eixos, rótulos, escalas), incluindo a checklist da secção 5.
 
 Esta regra também está no [CLAUDE.md](../CLAUDE.md) (secções 2, 4 e 5), por isso o assistente aplica-a automaticamente em todas as sessões.

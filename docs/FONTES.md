@@ -4,18 +4,19 @@ Este documento trata só do que vem **de fora** do lakehouse: as APIs, as série
 respostas e os ficheiros de contingência (*fallback*). As tabelas criadas a partir destes dados estão em
 [TABELAS.md](TABELAS.md). O fluxo entre camadas está em [ARQUITETURA.md](ARQUITETURA.md).
 
-Fonte de verdade: notebook, células 2 (tabela de fontes), 7 (`FRED_SERIES`, `YAHOO_SYMBOLS`) e 9 (`fetch_*`, `find_fallback`) e 10 (`ingest`).
+Fonte de verdade: notebook, células 2 (tabela de fontes), 8 (`FRED_SERIES`, `YAHOO_SYMBOLS`) e 10 (`fetch_*`, `find_fallback`) e 11 (`ingest`).
 
 ## 1. Catálogo das séries (21, todas gratuitas e sem chave)
 
 | Fonte | Série / símbolo | Conteúdo | Unidade | Freq. | Desde |
 |---|---|---|---|---|---|
 | FRED | `DCOILBRENTEU` | Brent spot | USD/barril | D | 1987 |
-| FRED | `DCOILWTICO` | WTI spot (inclui −37,63 a 20-04-2020, valor real) | USD/barril | D | 1986 |
+| FRED | `DCOILWTICO` | WTI spot (inclui −36,98 a 20-04-2020, valor real) | USD/barril | D | 1986 |
 | FRED | `DEXUSEU` | Câmbio: USD por 1 EUR | USD por EUR | D | 1999 |
 | FRED / OCDE | `SPASTT01PTM661N` | Índice de preços de ações Portugal | Índice 2015=100 | M | 1988 |
 | FRED / Eurostat | `CP0000PTM086NEST` | IHPC Portugal (inflação), usado para preços em euros de hoje | Índice | M | 1996 |
 | Yahoo Finance (chart API) | `PSI20.LS` | Índice PSI (OHLCV) | Pontos | D | **2013-04-30** |
+| Yahoo Finance (chart API) | `^STOXX50E` | Euro Stoxx 50 (OHLCV), controlo do efeito C | Pontos | D | **2007-03-30** |
 | Yahoo Finance | 15 empresas `.LS` (ver abaixo) | Cotações OHLCV + fecho ajustado | EUR | D | 2000 ou IPO |
 
 Cobertura dos ficheiros de fallback do Yahoo (primeiro → último dia, nº de dias):
@@ -38,8 +39,9 @@ Cobertura dos ficheiros de fallback do Yahoo (primeiro → último dia, nº de d
 | `EGL.LS` | Mota-Engil | 2001-01-25 | 6628 |
 | `BCP.LS` | BCP | 2000-01-03 | 6906 |
 | `PSI20.LS` | PSI (índice) | 2013-04-30 | 3462 |
+| `^STOXX50E` | Euro Stoxx 50 (ficheiro `yahoo_IDX_STOXX50E.json`, descarregado da API a 13-11-2026) | 2007-03-30 | 4935 |
 
-Todos terminam em 2026-11-06. O setor e o sinal esperado de cada empresa estão em [METODOLOGIA.md](METODOLOGIA.md).
+Todos terminam em 2026-11-06, exceto o Euro Stoxx 50 (2026-11-13). O Yahoo não tem dados diários deste índice antes de 2007-03. O setor e o sinal esperado de cada empresa estão em [METODOLOGIA.md](METODOLOGIA.md).
 
 Fontes consideradas e descartadas:
 - **Investing.com:** não tem API e proíbe a recolha automática.
@@ -130,17 +132,18 @@ O **Databricks Free Edition só deixa aceder à internet a uma lista de domínio
 
 O modo fica registado em `ctl_ingestion_log.extract_mode` como `API` ou `FALLBACK (<tipo de erro>)`.
 
-Os 21 pedidos de cada leitura correm em paralelo (`ingest`, 8 de cada vez). Cada série tem o seu próprio fallback; se o Yahoo
+Os 22 pedidos de cada leitura correm em paralelo (`ingest`, 8 de cada vez). Cada série tem o seu próprio fallback; se o Yahoo
 limitar os pedidos (HTTP 429), essa série cai no fallback e o log mostra-o.
 
-- **Fallback no repositório:** `dados_fallback/`, 21 ficheiros (5 `fred_<série>.csv` + 16 `yahoo_<símbolo>.json`), cópia de 07-11-2026.
+- **Fallback no repositório:** `dados_fallback/`, 22 ficheiros (5 `fred_<série>.csv` + 17 `yahoo_<símbolo>.json`), cópia de 07-11-2026 (o Euro Stoxx 50 de 13-11-2026).
+- **Nome seguro:** o `^` dos índices do Yahoo não entra em caminhos. `_nome_ficheiro` (célula 10) troca-o por `IDX_` na pasta e no ficheiro da landing e no nome do fallback (`yahoo_IDX_STOXX50E.json`). A Bronze lê o símbolo do JSON (`meta.symbol`), por isso guarda `^STOXX50E`.
   Não são a fonte principal: só se usam quando a API falha, e não têm dados posteriores a essa data.
 - **No Databricks:** os ficheiros vão para `/Volumes/workspace/oil_psi/lake/fallback/`. São copiados automaticamente de `dados_fallback/` pela célula do schema (secção 0) quando o repositório está numa Git folder; senão, faz-se o *upload* manual. A função `find_fallback` também os encontra noutra pasta do Volume (ignora maiúsculas e exclui a `landing/`).
 - **Localmente:** os ficheiros são copiados automaticamente para `./lakehouse_oil_psi/fallback/` (ver [DESENVOLVIMENTO.md](DESENVOLVIMENTO.md)).
 
 ## 5. Acrescentar uma série
 
-1. Juntá-la a `FRED_SERIES` ou a `YAHOO_SYMBOLS` (notebook, célula 7). Nas empresas, usar `_eq(nome, sector, hypothesis, sector_view)`.
+1. Juntá-la a `FRED_SERIES` ou a `YAHOO_SYMBOLS` (notebook, célula 8). Nas empresas, usar `_eq(nome, sector, hypothesis, sector_view)`.
 2. Pôr o ficheiro de fallback correspondente em `dados_fallback/` (com o mesmo formato da API).
-3. Atualizar a tabela de fontes no markdown do notebook (célula 2), e a tabela de empresas (célula 3) se for o caso.
+3. Atualizar a tabela de fontes no markdown do notebook (célula 2), e a tabela de empresas (célula 4) se for o caso.
 4. Atualizar este documento e [METODOLOGIA.md](METODOLOGIA.md) (no caso das empresas).

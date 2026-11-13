@@ -5,7 +5,7 @@ incrementais e reprocessamento.
 - As colunas de cada tabela estão em [TABELAS.md](TABELAS.md).
 - O formato das fontes está em [FONTES.md](FONTES.md).
 
-Fonte de verdade: notebook, secções 0–5 (células 2, 5–6, 8, 16, 22, 28, 31, 35–42).
+Fonte de verdade: notebook, secções 0–5 (células 2–3, 6–7, 9, 17, 23, 29, 33, 37–44).
 
 ## 1. Visão geral
 
@@ -32,6 +32,53 @@ ANÁLISE  Spark SQL (%sql), matplotlib, AI/BI Dashboard, MLlib (LinearRegression
 CONTROLO ctl_ingestion_log (uma linha por série e por leitura)
 ```
 
+No notebook, a mesma visão aparece como diagrama Mermaid horizontal (só o essencial: cada seta é um passo de `run_pipeline`, de `ingest` a `build_gold`) (célula 3, logo abaixo do título "Arquitetura (Medallion)", que fica no fim da célula 2):
+a célula mostra o PNG [`img/arquitetura_medallion.png`](../img/arquitetura_medallion.png), para aparecer no HTML exportado.
+A fonte é [`img/arquitetura_medallion.mmd`](../img/arquitetura_medallion.mmd); se a alterares, volta a gerar o PNG
+(na pasta `img/`: `npx -y @mermaid-js/mermaid-cli -i arquitetura_medallion.mmd -o arquitetura_medallion.png -s 2 -b white`) e corre a célula 3.
+
+```mermaid
+---
+config:
+  flowchart:
+    htmlLabels: true
+    useMaxWidth: false
+    wrappingWidth: 300
+    nodeSpacing: 30
+    rankSpacing: 50
+    curve: linear
+  themeVariables:
+    edgeLabelBackground: "#ffffff"
+  themeCSS: ".edgeLabel { font-style: italic; color: #4a5560; font-size: 14px; } .edgeLabel p, .edgeLabel span { padding: 0 5px; }"
+---
+flowchart LR
+    APIS["<b>APIs</b><br/>FRED · Yahoo"]
+    LANDING["<b>LANDING</b><br/>ficheiros em bruto"]
+    BRONZE["<b>BRONZE</b><br/>histórico das leituras"]
+    SILVER["<b>SILVER</b><br/>dados limpos"]
+    GOLD["<b>GOLD</b><br/>tabelas de análise"]
+    ANALISE["<b>ANÁLISE</b><br/>SQL · gráficos · ML"]
+
+    APIS -- "<b>ler</b><br/>3 leituras" --> LANDING
+    LANDING -- "<b>acrescentar</b>" --> BRONZE
+    BRONZE -- "<b>limpar</b><br/>+ MERGE" --> SILVER
+    SILVER -- "<b>calcular</b><br/>retornos, agregações" --> GOLD
+    GOLD --> ANALISE
+
+    classDef fonte fill:#eef2f7,stroke:#5b6b80,color:#1f2933
+    classDef landing fill:#f4f4f4,stroke:#8a8a8a,color:#1f2933
+    classDef bronze fill:#f3dcc4,stroke:#a0612b,color:#3d2410
+    classDef silver fill:#e6e9ec,stroke:#7d8791,color:#1f2933
+    classDef gold fill:#f8e7a8,stroke:#b8901c,color:#3d3005
+    classDef analise fill:#dcefe2,stroke:#3f8a5a,color:#173222
+    class APIS fonte
+    class LANDING landing
+    class BRONZE bronze
+    class SILVER silver
+    class GOLD gold
+    class ANALISE analise
+```
+
 - **Catálogo / schema:** `workspace.oil_psi`. **Volume:** `lake` (`/Volumes/workspace/oil_psi/lake`), com as pastas `landing/` e `fallback/`.
 - **Prefixos:** `ctl_` (controlo), `bz_` (Bronze), `sv_` (Silver), `gd_` (Gold). É o estilo do notebook da aula 7
   ("ABD07 The Data Lakehouse"), que usa `BZ_` / `SV_` / `GD_`.
@@ -51,7 +98,7 @@ CONTROLO ctl_ingestion_log (uma linha por série e por leitura)
 2. **Nulos:** os valores vazios ou `.` são eliminados. No PSI e nas empresas, os dias sem fecho são eliminados.
 3. **Duplicados:** a mesma (série, data) pode chegar em várias leituras. Fica sempre a **leitura mais recente**
    (`latest_per_key`: ordena por `_ingestion_ts` desc e `_batch_id` desc), o que também corrige revisões da fonte.
-4. **Validação:** os preços ≤ 0 ficam com `dq_flag = 'PRECO_NAO_POSITIVO'` e não são apagados (ex.: WTI a −37,63 USD a
+4. **Validação:** os preços ≤ 0 ficam com `dq_flag = 'PRECO_NAO_POSITIVO'` e não são apagados (ex.: WTI a −36,98 USD a
    20-04-2020). Nas ações também se marca `MAX_MENOR_QUE_MIN`.
 5. **Ações:** guarda-se o fecho e o **fecho ajustado** (`adj_close`, que usa o `close` quando falta o ajustado).
    Os preços ficam com 4 casas decimais (há ações abaixo de 1 €, como o BCP) e o `adj_close` fica com 6.
@@ -77,8 +124,8 @@ A qualidade em bruto é medida antes de normalizar (notebook 2.1): valores em fa
 
 ## 3. Leituras incrementais
 
-São 3 leituras (*batches*) das 21 séries, que simulam três dias de funcionamento numa única execução. **A janela de cada série é
-escolhida sempre pela mesma regra, `plan_windows(end_date)`** (notebook, célula 10): sem dados na Bronze, carga completa desde
+São 3 leituras (*batches*) das 22 séries, que simulam três dias de funcionamento numa única execução. **A janela de cada série é
+escolhida sempre pela mesma regra, `plan_windows(end_date)`** (notebook, célula 11): sem dados na Bronze, carga completa desde
 `HIST_START`; com dados, *watermark* − `OVERLAP_DAYS` → `end_date`. A 1.ª leitura corre os passos de `run_pipeline` um a um nas
 secções 1 a 4, para explicar cada camada; as outras duas chamam `run_pipeline`.
 
@@ -110,7 +157,7 @@ secções 1 a 4, para explicar cada camada; as outras duas chamam `run_pipeline`
 ## 5. Delta Lake e otimização
 
 - Transações ACID, `MERGE` para upserts.
-- **Time travel:** `DESCRIBE HISTORY gd_market_daily` e `SELECT … VERSION AS OF 0` (notebook 5, célula 42).
+- **Time travel:** `DESCRIBE HISTORY gd_market_daily` e `SELECT … VERSION AS OF 0` (notebook 5, célula 44).
 - **`gd_market_daily`** está particionada por `year` e tem `OPTIMIZE … ZORDER BY (date)`, para compactar ficheiros pequenos e fazer *data skipping*.
 - A Bronze está particionada por `_ingest_date`.
 - As instruções `OPTIMIZE`, `DESCRIBE HISTORY` e `VERSION AS OF` só correm quando `TABLE_FORMAT == "delta"`.
@@ -159,7 +206,7 @@ As funções são definidas na mesma célula em que são usadas pela primeira ve
 
 | Secção | Conteúdo | Funções / constantes |
 |---|---|---|
-| Cabeçalho | Título, grupo, objetivo, fontes, arquitetura, empresas | — |
+| Cabeçalho | Título, grupo, objetivo, fontes, arquitetura (+ diagrama PNG), empresas | — |
 | 0 Configuração | Ambiente, schema, Volume, reset, catálogo de séries | `IS_DATABRICKS`, `TABLE_FORMAT`, `BASE`/`LANDING`/`FALLBACK`, `RESET`, `ALL_TABLES`, `FRED_SERIES`, `YAHOO_SYMBOLS`, `_eq` |
 | 1 Ingestão / Landing | Pedidos às APIs, contingência, gravação na landing, log | `YAHOO_HEADERS`, `_http_get`, `_to_epoch`, `fetch_fred`, `fetch_yahoo`, `find_fallback`, `land`, `LOG_SCHEMA`, `ingest`, `HIST_START`, `OVERLAP_DAYS`, `all_series`, `watermarks`, `plan_windows` |
 | 1.1 1.ª leitura | Carga histórica | `HIST_END` |
@@ -168,5 +215,5 @@ As funções são definidas na mesma célula em que são usadas pela primeira ve
 | 4 Gold | Mercado diário / mensal / anual | `build_gold` |
 | 4.1 Gold empresas | Retornos mensais, sensibilidade | `OUTLIER_DAILY`, `MIN_MONTHS`, `PERIODS`, `BASKET_ID`, `_verdict`, `build_gold_equity` |
 | 5 Incrementais (+ 5.1 reprocessamento) | 2 leituras, log, comparação Bronze vs Silver, time travel | `run_pipeline` |
-| 6 Análise | Queries, gráficos, dashboard, ML | ver [ANALISES.md](ANALISES.md) |
+| 6 Análise (6.1–6.7, uma por pergunta) | Tabelas, gráficos e ML por pergunta; nota do dashboard | `sombrear_crises`, `rotular_fim`, `finalizar`, `tabela_nova` (ver [ANALISES.md](ANALISES.md)) |
 | 7 Conclusões | Texto | ver [CONCLUSOES.md](CONCLUSOES.md) |
