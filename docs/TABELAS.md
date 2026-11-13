@@ -36,7 +36,7 @@ Schema explícito em `LOG_SCHEMA` (célula 11). Tem uma linha por série e por l
 | Coluna | Tipo | Descrição |
 |---|---|---|
 | `batch_id` | str | `AAAAMMDDTHHMMSS_<6 hex>` (UTC) |
-| `batch_name` | str | `carga_inicial`, `incremental_1`, `incremental_2` |
+| `batch_name` | str | `carga_inicial`, `incremental` |
 | `source` | str | `FRED` ou `YAHOO` |
 | `series_id` | str | ID FRED ou símbolo Yahoo |
 | `window_start`, `window_end` | str | Janela pedida (`AAAA-MM-DD`) |

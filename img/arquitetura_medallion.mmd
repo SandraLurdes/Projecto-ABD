@@ -19,7 +19,7 @@ flowchart LR
     GOLD["<b>GOLD</b><br/>tabelas de análise"]
     ANALISE["<b>ANÁLISE</b><br/>SQL · gráficos · ML"]
 
-    APIS -- "<b>ler</b><br/>3 leituras" --> LANDING
+    APIS -- "<b>ler</b><br/>2 leituras" --> LANDING
     LANDING -- "<b>acrescentar</b>" --> BRONZE
     BRONZE -- "<b>limpar</b><br/>+ MERGE" --> SILVER
     SILVER -- "<b>calcular</b><br/>retornos, agregações" --> GOLD

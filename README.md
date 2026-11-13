@@ -38,7 +38,7 @@ As empresas, o sinal esperado por setor e as regras de análise estão em [docs/
 ```
 Projecto-ABD/
 ├── Lakehouse_Petroleo_PSI.ipynb   # entregável: notebook importado no Databricks
-├── dados_fallback/                # 21 ficheiros de contingência com o formato das APIs (cópia de 07-11-2026), só usados se a API falhar
+├── dados_fallback/                # 22 ficheiros de contingência com o formato das APIs (cópia de 07-11-2026; Euro Stoxx 50 de 13-11-2026), só usados se a API falhar
 │   ├── fred_<série>.csv           # 5 séries FRED (Brent, WTI, EUR/USD, índice OCDE ações PT, IHPC Portugal)
 │   └── yahoo_<símbolo>.json       # 17 séries Yahoo (PSI, Euro Stoxx 50 e 15 empresas)
 ├── docs/
@@ -82,7 +82,7 @@ APIs ─► LANDING (ficheiros em bruto) ─► BRONZE (append-only, linhagem) �
                                                                                                           └─► Spark SQL · matplotlib · AI/BI Dashboard · MLlib
 ```
 
-Há 3 leituras incrementais (carga histórica + 2 incrementais, com 45 dias de sobreposição). A Silver pode ser reprocessada de raiz a partir
+Há 2 leituras (carga histórica + 1 incremental, com 45 dias de sobreposição). A Silver pode ser reprocessada de raiz a partir
 da Bronze, e o Delta Lake garante `MERGE`, *time travel* e `OPTIMIZE … ZORDER`.
 → Processo: [docs/ARQUITETURA.md](docs/ARQUITETURA.md) · Tabelas e colunas: [docs/TABELAS.md](docs/TABELAS.md).
 
@@ -116,8 +116,8 @@ As bibliotecas usadas (`pyspark`, `requests`, `pandas`, `numpy`, `matplotlib`) j
 1. Abrir o repositório como **Git folder** (*Workspace → Create → Git folder*, com o URL do GitHub), ou atualizá-lo com *Pull*.
    Também se pode importar só o notebook (*Workspace → Import*), mas então o fallback não é copiado sozinho (ver passo 3).
 2. Correr as células da secção **0. Configuração do ambiente**. Criam o schema `workspace.oil_psi` e o Volume `lake` e copiam os
-   21 ficheiros de fallback de `dados_fallback/` para `/Volumes/workspace/oil_psi/lake/fallback/`. A cópia é idempotente: só copia o que falta.
-3. *Só se o notebook foi importado sem a Git folder:* em **Catalog → workspace → oil_psi → Volumes → lake**, criar a pasta `fallback` e fazer *upload* dos **21 ficheiros** de `dados_fallback/`.
+   22 ficheiros de fallback de `dados_fallback/` para `/Volumes/workspace/oil_psi/lake/fallback/`. A cópia é idempotente: só copia o que falta.
+3. *Só se o notebook foi importado sem a Git folder:* em **Catalog → workspace → oil_psi → Volumes → lake**, criar a pasta `fallback` e fazer *upload* dos **22 ficheiros** de `dados_fallback/`.
 4. Correr **Run all**. Com `RESET = True` todas as tabelas e a landing são apagadas e reconstruídas (o fallback é mantido).
 5. Criar o **AI/BI Dashboard** (*New → Dashboard*) sobre as tabelas `gd_*` (widgets propostos na introdução da secção 6 do notebook; especificação em [docs/ANALISES.md](docs/ANALISES.md)).
 6. Exportar o notebook em **HTML** (*File → Export → HTML*) para a entrega.
@@ -187,7 +187,7 @@ _Execução local de 13-11-2026 com as APIs (PySpark 4.3). Os números devem ser
 - **Galp: confirma a hipótese.** Num mês em que o Brent (EUR) sobe 10%, a Galp sobe em média +2,7% (t = 7,1), e +2,1% descontando a bolsa portuguesa (t = 5,7).
 - **As outras 14 não confirmam no efeito total.** Todas têm correlação positiva com o petróleo e o cabaz sem a Galp sobe +1,0% por cada +10% no Brent (t = 4,2): petróleo e bolsa seguem o mesmo ciclo económico.
 - **Descontando a bolsa portuguesa**, 7 das 14 ficam negativas, mas só a REN e os CTT de forma significativa. Descontando a bolsa europeia, nenhuma desce de forma significativa.
-- **A relação depende do tipo de choque:** juntos nas crises de procura (correlação de 36 meses do cabaz sem a Galp em 0,73 no fim de 2020); no choque de 2026 caiu para −0,34, enquanto a Galp ficou em +0,50.
+- **A relação depende do tipo de choque:** juntos nas crises de procura (correlação de 36 meses do cabaz sem a Galp em 0,73 no fim de 2020); na subida do Brent de 2026 caiu para −0,34, enquanto a Galp ficou em +0,50.
 - **O petróleo explica pouco do PSI e não o antecipa:** R² de 7,3% em 2013–2023, negativo em 2024–2026, e um Random Forest abaixo da regra ingénua "sobe sempre" (AUC 0,44).
 
 → Todos os resultados e o mapa das conclusões do notebook: [docs/CONCLUSOES.md](docs/CONCLUSOES.md).

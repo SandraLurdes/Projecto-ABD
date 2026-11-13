@@ -59,7 +59,7 @@ flowchart LR
     GOLD["<b>GOLD</b><br/>tabelas de análise"]
     ANALISE["<b>ANÁLISE</b><br/>SQL · gráficos · ML"]
 
-    APIS -- "<b>ler</b><br/>3 leituras" --> LANDING
+    APIS -- "<b>ler</b><br/>2 leituras" --> LANDING
     LANDING -- "<b>acrescentar</b>" --> BRONZE
     BRONZE -- "<b>limpar</b><br/>+ MERGE" --> SILVER
     SILVER -- "<b>calcular</b><br/>retornos, agregações" --> GOLD
@@ -124,21 +124,20 @@ A qualidade em bruto é medida antes de normalizar (notebook 2.1): valores em fa
 
 ## 3. Leituras incrementais
 
-São 3 leituras (*batches*) das 22 séries, que simulam três dias de funcionamento numa única execução. **A janela de cada série é
+São 2 leituras (*batches*) das 22 séries, que simulam dois momentos de funcionamento numa única execução. **A janela de cada série é
 escolhida sempre pela mesma regra, `plan_windows(end_date)`** (notebook, célula 11): sem dados na Bronze, carga completa desde
 `HIST_START`; com dados, *watermark* − `OVERLAP_DAYS` → `end_date`. A 1.ª leitura corre os passos de `run_pipeline` um a um nas
-secções 1 a 4, para explicar cada camada; as outras duas chamam `run_pipeline`.
+secções 1 a 4, para explicar cada camada; a 2.ª corre depois da Gold e chama `run_pipeline`.
 
 | Batch | Janela | Onde |
 |---|---|---|
-| `carga_inicial` | 2000-01-01 → 2025-12-31 (Bronze vazia → `HIST_START`; fim `HIST_END`) | notebook 1.1, `ingest(…, plan_windows(HIST_END))` + secções 2 a 4 |
-| `incremental_1` | *watermark* − 45 dias → 2026-06-30 | notebook 5, `run_pipeline` |
-| `incremental_2` | *watermark* − 45 dias → hoje | notebook 5, `run_pipeline` |
+| `carga_inicial` | 2000-01-01 → 2026-06-30 (Bronze vazia → `HIST_START`; fim `HIST_END`) | notebook 1.1, `ingest(…, plan_windows(HIST_END))` + secções 2 a 4 |
+| `incremental` | *watermark* − 45 dias → hoje (na execução de 13-11-2026: 2026-05-16 → 2026-11-13) | notebook 5, `run_pipeline` |
 
 - **Watermark** (`watermarks()`): a última data por série na Bronze (`max(observation_date)` no FRED e `max(ts_epoch)` no Yahoo).
   Antes da primeira leitura a Bronze não existe e devolve `{}`.
 - **`OVERLAP_DAYS = 45`:** cada leitura recomeça 45 dias antes do watermark. Isto apanha as correções da fonte, mas gera **duplicados
-  de propósito** na Bronze (65 por série diária na execução de 07-11-2026), que o `MERGE` da Silver resolve.
+  de propósito** na Bronze (32 por série diária e 3 por série mensal na execução de 13-11-2026), que o `MERGE` da Silver resolve.
 - **`batch_id`** = `AAAAMMDDTHHMMSS_<6 hex>` (UTC).
 - **`run_pipeline(batch_name, end_date)`** faz `ingest(batch_name, plan_windows(end_date))` → `load_bronze` → `build_silver(bid)` →
   `build_gold()` → `build_gold_equity()`. É o *runner* único: numa execução futura (com `RESET = False`, no Databricks) basta
@@ -149,7 +148,7 @@ secções 1 a 4, para explicar cada camada; as outras duas chamam `run_pipeline`
 - **`upsert(df, table, keys)`:** se a tabela não existir, cria-a. Em Delta faz `MERGE INTO … WHEN MATCHED UPDATE SET * WHEN NOT MATCHED INSERT *`.
   Fora do Databricks (Parquet) faz *anti-join* + `union` + overwrite.
 - **`build_silver(batch_id=None)`** reconstrói a Silver a partir de **toda** a Bronze. O notebook (5.1) apaga as 4 tabelas de factos
-  (`SILVER_FACTS`), reconstrói-as e verifica que as contagens são idênticas (`Silver idêntica após reprocessamento: True`).
+  (`SILVER_FACTS`), reconstrói-as e verifica que as contagens são idênticas (`Silver com o mesmo número de linhas após o reprocessamento: True`).
 - **`RESET = True`** apaga todas as tabelas de `ALL_TABLES` e a landing (o fallback **não** é apagado) e reconstrói tudo. É o modo usado para
   a entrega (em produção ficaria `False`). Também apaga `sv_fact_psi_daily`, uma tabela de uma versão anterior (o PSI passou para
   `sv_fact_equity_daily`).
@@ -164,7 +163,7 @@ secções 1 a 4, para explicar cada camada; as outras duas chamam `run_pipeline`
 
 ### Desempenho
 
-Medido localmente a 11-11-2026 (`nbconvert --execute`, Run all completo):
+Medido localmente a 11-11-2026 (`nbconvert --execute`, Run all completo), quando o notebook ainda fazia 3 leituras:
 
 | | Antes | Depois |
 |---|---|---|
@@ -214,6 +213,6 @@ As funções são definidas na mesma célula em que são usadas pela primeira ve
 | 3 Silver | Normalização + MERGE | `upsert`, `latest_per_key`, `_dim_row`, `normalize_fred`, `normalize_yahoo`, `SILVER_FACTS`, `build_silver` |
 | 4 Gold | Mercado diário / mensal / anual | `build_gold` |
 | 4.1 Gold empresas | Retornos mensais, sensibilidade | `OUTLIER_DAILY`, `MIN_MONTHS`, `PERIODS`, `BASKET_ID`, `_verdict`, `build_gold_equity` |
-| 5 Incrementais (+ 5.1 reprocessamento) | 2 leituras, log, comparação Bronze vs Silver, time travel | `run_pipeline` |
+| 5 Incremental (+ 5.1 reprocessamento) | 1 leitura, log, comparação Bronze vs Silver, time travel | `run_pipeline` |
 | 6 Análise (6.1–6.7, uma por pergunta) | Tabelas, gráficos e ML por pergunta; nota do dashboard | `sombrear_crises`, `rotular_fim`, `finalizar`, `tabela_nova` (ver [ANALISES.md](ANALISES.md)) |
 | 7 Conclusões | Texto | ver [CONCLUSOES.md](CONCLUSOES.md) |

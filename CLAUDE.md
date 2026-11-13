@@ -43,7 +43,7 @@ Para encontrar código no notebook, faz o dump das células com um script Python
 
 Qualquer alteração tem de manter cumpridos estes requisitos (o detalhe está em [Project_Instructions.md](Project_Instructions.md)):
 - Data Lakehouse com Apache Spark no **Databricks Free Edition**.
-- Pelo menos uma fonte, lida **mais do que uma vez** (3 leituras incrementais).
+- Pelo menos uma fonte, lida **mais do que uma vez** (2 leituras: carga histórica + 1 incremental).
 - Camadas Bronze (histórico das leituras, reprocessável) → Silver (normalizada, modelada para o tema) → Gold (otimizada para análise).
 - Análises: **query, dashboard e modelo de ML**.
 - Conclusões sobre os dados, o processo e a tecnologia.

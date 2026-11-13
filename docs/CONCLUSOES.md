@@ -1,7 +1,7 @@
 # Resultados e conclusões
 
-**Proveniência:** execução local de 13-11-2026, 15:51 (PySpark 4.3 + Java 17, tabelas em Parquet). As 22 séries vieram das APIs (modo `API`)
-nas 3 leituras, com dados até 13-11-2026. Os números foram lidos das saídas guardadas no notebook e das tabelas Gold locais
+**Proveniência:** execução local de 13-11-2026, 16:34 (PySpark 4.3 + Java 17, tabelas em Parquet). As 22 séries vieram das APIs (modo `API`)
+nas 2 leituras, com dados até 13-11-2026. Os números foram lidos das saídas guardadas no notebook e das tabelas Gold locais
 (`lakehouse_oil_psi/warehouse/oil_psi.db/gd_*`).
 
 **A fonte de verdade é o notebook, secção 7.** Este documento resume os números e indica onde estão no texto.
@@ -18,8 +18,8 @@ aqui e no resumo do [README](../README.md).
   e os CTT (−1,1%, t = −2,2). Semapa e Ibersol positivas e significativas.
 - **Sem a bolsa europeia (efeito C, Euro Stoxx 50, 2007–2026):** só a Galp confirma; Corticeira Amorim, Navigator, Semapa, Ibersol e o
   cabaz contrariam; nenhuma empresa desce de forma significativa.
-- **Ao longo do tempo:** correlação de 36 meses do cabaz sem Galp em 0,73 no fim de 2020 (crise de procura) e −0,34 em 11-2026 (choque
-  de oferta); a Galp em 0,50. Correlação móvel de 1 ano do PSI: picos de 0,56 (2016) e 0,64 (2020), −0,13 em 11-2026.
+- **Ao longo do tempo:** correlação de 36 meses do cabaz sem Galp em 0,73 no fim de 2020 (crise de procura) e −0,34 em 11-2026 (subida
+  do Brent); a Galp em 0,50. Correlação móvel de 1 ano do PSI: picos de 0,56 (2016) e 0,64 (2020), −0,13 em 11-2026.
 - **Desfasamentos:** correlações com o Brent de 1–3 meses antes entre −0,12 e 0,09 (nulas).
 - **Inflação:** Brent em euros de 2000: 31 € (2000), 51 € (2008), 64 € (2012), 62 € (2022), 47 € (2026).
 - **Bolsa vs Brent EUR:** corr. mensal 0,31 (ações PT da OCDE, 2000–2026), 0,32 (PSI mensal, 2013–2026), diária 0,21 (PSI); níveis 0,51.
@@ -29,6 +29,8 @@ aqui e no resumo do [README](../README.md).
 
 ## 2. Mapa das conclusões do notebook (secção 7)
 
+A secção 7 abre com uma tabela que resume a resposta a cada pergunta (Sim./Não./Em parte., como na secção 6).
+
 ### 7.1 Sobre os dados
 | # | Conclusão | Números citados |
 |---|---|---|
@@ -36,7 +38,7 @@ aqui e no resumo do [README](../README.md).
 | 2 | Em euros, o choque de 2008 foi menor | 2008: 97 USD, mas 65 € (1,47 USD por EUR); EUR/USD vs PSI diário 0,04 |
 | 3 | A relação é positiva, fraca e instável | 0,31 mensal, 0,21 diária, níveis 0,51; picos de 0,56 (2016) e 0,64 (2020); 2026: Brent EUR +58%, PSI +17% |
 | 4 | O petróleo acompanha o ciclo económico | Brent < −10%: ações −1,7% (sobem em 41% dos meses); Brent > +10%: +1,7% (65%); 2008 −69% / −43%; COVID −78% / −14%; pós-COVID +334% / +46% |
-| 5 | Há exceções nos choques de oferta ou internos | 2007-08: Brent +97%, ações −4% (sinal sensível às datas); troika: +37% / −33% |
+| 5 | Há exceções nas subidas do Brent e nas crises internas | 2007-08: Brent +97%, ações −4% (sinal sensível às datas); troika: +37% / −33% |
 | 6 | O petróleo explica pouco do PSI e não o antecipa | R² 7,3% (treino), −15,4% (teste), +1,03% por +10%; RF accuracy 47,5%, AUC 0,44, regra "sobe sempre" 53,6% |
 
 Os números da conclusão 4 (meses com o Brent a variar mais de 10%) não aparecem na secção 6. Foram calculados sobre `gd_market_monthly`
@@ -53,8 +55,8 @@ Os números da conclusão 4 (meses com o Brent a variar mais de 10%) não aparec
 | — | Limitações | sobrevivência; mercado PT com pesos iguais (correlação de 0,90 com o PSI); CTT/EDPR/REN com 155–232 meses |
 
 ### 7.3 Sobre o processo
-- Medallion. 3 leituras de 22 séries (5 FRED, 17 Yahoo) com 45 dias de sobreposição: 65 duplicados por série diária, resolvidos pelo `MERGE`.
-- Silver reconstruída a partir da Bronze com resultado idêntico.
+- Medallion. 2 leituras de 22 séries (5 FRED, 17 Yahoo), a carga histórica e uma incremental, com 45 dias de sobreposição: 32 duplicados por série diária, resolvidos pelo `MERGE`.
+- Silver reconstruída a partir da Bronze com o mesmo número de linhas em cada tabela (a verificação compara contagens).
 - Qualidade: dias sem cotação removidos (500 no Brent), tipos convertidos, WTI −36,98 USD com `dq_flag`, fecho ajustado, 2 meses da Altri
   excluídos, linhagem e `ctl_ingestion_log`.
 - Não há PSI diário antes de 2013. A solução foi combinar o índice OCDE (2000–2026) com o PSI diário (2013–2026).

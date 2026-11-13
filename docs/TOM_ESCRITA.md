@@ -11,8 +11,10 @@ O notebook é o suporte da apresentação: o grupo lê-o em voz alta, célula a 
 Somos quatro estudantes a apresentar um projeto de Big Data. O texto diz o que fizemos e o que os dados mostram.
 Não explica a teoria da cadeira nem tenta convencer.
 
-As marcas de escrita de IA da secção 5 vêm da página da Wikipedia
-[Signs of AI writing](https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing), adaptadas ao português.
+As marcas de escrita de IA da secção 5 vêm das páginas da Wikipedia
+[Signs of AI writing](https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing) e
+[Sinais de texto gerado por inteligência artificial](https://pt.wikipedia.org/wiki/Wikip%C3%A9dia:Sinais_de_texto_gerado_por_intelig%C3%AAncia_artificial),
+adaptadas ao projeto.
 
 ## 2. Tom
 
@@ -26,7 +28,8 @@ As marcas de escrita de IA da secção 5 vêm da página da Wikipedia
 
 ## 3. Frases
 
-- Uma ideia por frase. Alvo: até 20 palavras. Acima de 30, partir em duas.
+- Frases de tamanho variado. A maioria fica abaixo das 20 palavras, mas duas ideias ligadas juntam-se com "porque", "por isso",
+  "mas" ou "e". Acima de 40, partir em duas. Um texto só de frases curtas e iguais também é marca de IA (secção 5).
 - Ordem direta: sujeito, verbo, complemento. O resultado vem primeiro, o pormenor depois.
 - Verbos simples: "é", "tem", "lê", "guarda", "junta", "calcula". Não "constitui", "procede à leitura", "desempenha o papel de".
 - Voz ativa quando o agente importa: "a Silver elimina os duplicados", não "os duplicados são eliminados pela Silver".
@@ -37,7 +40,8 @@ As marcas de escrita de IA da secção 5 vêm da página da Wikipedia
 ## 4. Português de Portugal
 
 - pt-PT com o Acordo Ortográfico de 1990, como no resto do notebook: "ficheiro", "registo", "ecrã", "utilizador", "equipa".
-- Números com vírgula decimal (0,25) e espaço nos milhares (12 345). Datas no texto em DD-MM-AAAA; nos gráficos em ISO
+- Números com vírgula decimal (0,25) e espaço nos milhares (12 345). Valores negativos e intervalos com o hífen do teclado
+  (-0,34; 2000-2026). Datas no texto em DD-MM-AAAA; nos gráficos em ISO
   (ver [IBCS_GRAFICOS.md](IBCS_GRAFICOS.md)).
 - Termos técnicos em inglês em itálico na primeira vez (*batch*, *watermark*, *forward-fill*). Nomes de código, tabelas e colunas
   entre acentos graves (`gd_market_daily`).
@@ -61,17 +65,29 @@ As marcas de escrita de IA da secção 5 vêm da página da Wikipedia
 | Restos de chatbot | "Certamente", "Aqui está", "Espero que ajude", perguntas retóricas ao leitor | cortar |
 | Secções genéricas | "Desafios e perspetivas futuras" com frases vagas e um fecho otimista | limitações concretas, cada uma com o efeito |
 | Variação de sinónimos | Brent / crude / ouro negro / barril na mesma secção | um só termo |
+| Listas com rótulo a negrito | "- **Câmbio:** quando o euro valoriza…" em todas as conclusões | o item começa pelo facto: "- Quando o euro valoriza…" |
+| Negrito a mais | números, empresas e termos a negrito em todas as frases | negrito só nos rótulos fixos e num número por resposta |
+| Molde repetido | todas as notas com os mesmos rótulos pela mesma ordem ("**O gráfico:**", "**As linhas:**") | 2 a 5 frases, pela ordem em que se olha para o gráfico |
+| Ritmo uniforme | só frases de 10 a 15 palavras, ou estilo telegráfico com dois pontos ("Verde: mercado; laranja: Galp.") | frases com verbo e de tamanho variado |
+| Tipografia que ninguém escreve | sinal menos (−), traço curto (–), ≤, ≥, ÷, …, → em comentários de código | os caracteres do teclado: -, <=, >=, /, ..., -> |
+| Frase feita repetida | "É coerente com…" em quatro conclusões | dizer a causa, ou variar |
+| Instruções ao leitor | "Widgets propostos:", "Não unificar.", "Chamar depois de…" | o que foi feito e porquê |
+| Código escrito contra um guião | comentários com "(docs/…md §8)", "(IBCS UN 5.3)", passos "# 1) … # 5)", docstring em todas as funções | o motivo em poucas palavras; docstring só nas funções do pipeline |
 
 ## 6. Formatação
 
-- **Negrito** só para o termo-chave ou o número que responde à pergunta. No máximo 2 por frase ou item de lista,
-  sem contar o rótulo inicial (`**Mercado:**`).
-- Listas com rótulo a negrito só nos blocos já estabelecidos: *Como ler* e **Conclusões**. Um raciocínio escreve-se em frases.
+- **Negrito** só nos rótulos fixos (**Pergunta N:**, **Conclusões:**, **Resposta:**, o número de cada conclusão da secção 7) e,
+  no máximo, num número ou nome por resposta. No resto do texto corrido não se usa.
+- Sem listas com rótulo a negrito ("- **Rótulo:** texto"). As exceções são rótulos que são mesmo categorias: os efeitos A, B e C
+  da 6.4 e os dois modelos da 6.7. Um raciocínio escreve-se em frases.
 - Listas só para itens paralelos (tabelas, regras, séries).
 - Títulos: maiúscula só na primeira palavra e nos nomes próprios. As camadas LANDING, BRONZE, SILVER e GOLD mantêm as maiúsculas
   nos títulos das secções, por convenção do projeto.
-- Sem travessão (—) no texto nem nos títulos: usar dois pontos, vírgula ou parênteses. O traço curto (–) fica para intervalos
-  (2000–2026) e o sinal menos (−) para valores.
+- Sem travessão (—) no texto nem nos títulos: usar dois pontos, vírgula ou parênteses. No texto, nos comentários e nas docstrings
+  usa-se o hífen do teclado nos intervalos (2000-2026) e nos valores negativos (-0,34). O traço curto (–) fica só nos títulos e
+  rótulos dos gráficos ([IBCS_GRAFICOS.md](IBCS_GRAFICOS.md)).
+- Sem linha horizontal (`---`) entre secções: o título já separa.
+- Itálico nos termos em inglês só na primeira vez.
 - Sem emoji. Aspas retas ("…").
 
 ## 7. Padrões do notebook
@@ -79,9 +95,11 @@ As marcas de escrita de IA da secção 5 vêm da página da Wikipedia
 Estes padrões já existem e mantêm-se:
 
 - **Entrada da secção:** 1 a 3 frases com o que a secção faz e porquê. Depois o código.
-- **Fecho da secção:** "**Fim da secção N.**" e o que ficou feito, com números.
+- **Fecho da secção:** 1 a 3 frases com o que ficou feito e a ligação à secção seguinte. O rótulo "**Fim da secção N.**" só fica
+  nas secções 4 e 5.
 - **Análise (secção 6):** **Pergunta N** → resultado (tabela ou gráfico) → *Como ler* → **Conclusões** → **Resposta:**.
-  A resposta começa por "Sim.", "Não." ou "Em parte." e dá o número que a sustenta.
+  O *Como ler* é um parágrafo de 2 a 5 frases, sem repetir o que a célula antes do gráfico já disse. As conclusões são itens
+  simples, que começam pelo facto. A resposta começa por "Sim.", "Não." ou "Em parte." e dá o número que a sustenta.
 - **Comentários de código:** dizem o porquê, não repetem o código. Uma linha sempre que possível.
 - **Mensagens `print`:** curtas, com o número ("Bronze: 12 345 linhas"). Um aviso diz o problema e o que fazer, numa frase.
 - **Notas internas do grupo** ("SIMPLIFICAR", "MUDAR TEXTO…", texto entre `[ ]`) ficam como estão até o grupo as resolver.
@@ -98,23 +116,29 @@ Frases reais do notebook (13-11-2026), reescritas segundo este guia.
 | 80 | "**1. Petróleo: 26 anos de ciclos muito violentos.**" | "**1. Petróleo: de 9 a 144 USD em 26 anos.**" | adjetivo de valor → número |
 | 0 | "quando o preço do petróleo sobe de forma consolidada, a cotação das empresas portuguesas desce — **exceto a Galp**." | "quando o petróleo sobe, as ações portuguesas descem. A exceção é a **Galp**." | travessão; duas frases |
 | 4 | "Para quase todas as empresas o petróleo é um **custo** (…); para a Galp é **receita**." na mesma linha que "**exceto a da Galp**" | manter o negrito só em "custo" e "receita" | máximo 2 negritos |
+| 54 | "- **Os pontos:** cada ponto é um mês. Nuvem inclinada para cima: as ações sobem com o Brent; nuvem redonda: sem relação." | "*Como ler:* cada ponto é um mês (…). Se a nuvem está inclinada para cima, as ações sobem com o Brent; se é redonda, não há relação." | lista com rótulo; estilo telegráfico |
+| 59 | "- **2025:** no fim do ano aparece laranja na EDP (−0,56)…" | "- No fim de 2025 aparece laranja na EDP (-0,56)…" | rótulo a negrito; sinal menos |
+| 80 | "**3. A relação entre o petróleo e a bolsa portuguesa é positiva, fraca e instável.**" | "**3.** A relação entre o petróleo e a bolsa portuguesa é positiva e fraca, e muda com o tempo." | título a negrito; regra de três |
+| 80 | "**Delta Lake:** transações ACID, `MERGE` para *upserts*, *time travel*… e `OPTIMIZE`/`ZORDER`" | "No Delta Lake usámos o `MERGE` para os upserts da Silver, o `DESCRIBE HISTORY`…" | lista de funcionalidades → o que usámos |
+| 10 (código) | "…responde logo ao do requests. Não unificar." | "…responde logo ao do requests." | instrução ao leitor |
 
 ## 9. Checklist de revisão
 
 Antes de dar um texto por feito, confirmar:
 
-- [ ] Cada frase tem uma ideia e até 30 palavras.
+- [ ] Nenhuma frase acima de 40 palavras, e as frases não têm todas o mesmo tamanho.
 - [ ] Nenhuma palavra ou construção da [secção 5](#5-marcas-de-escrita-de-ia-a-evitar).
 - [ ] Nenhum travessão (—).
-- [ ] No máximo 2 negritos por frase ou item, sem contar o rótulo.
+- [ ] Negrito só nos rótulos fixos e num número por resposta. Nenhuma lista com rótulo a negrito fora das exceções da secção 6.
+- [ ] Nenhum −, –, ≤, ≥, ÷ ou … no markdown; nenhum → em comentários de código.
 - [ ] Cada conclusão tem um número. Cada "**Resposta:**" começa por "Sim.", "Não." ou "Em parte.".
 - [ ] O mesmo termo para a mesma coisa em toda a secção.
 - [ ] pt-PT, vírgula decimal, datas DD-MM-AAAA no texto.
 - [ ] Os números são os de [CONCLUSOES.md](CONCLUSOES.md).
 - [ ] As notas internas do grupo estão intactas.
 
-O script abaixo é só de leitura. Lista, por célula, as palavras da secção 5, os travessões, as linhas com mais de 2 negritos e as
-frases com mais de 30 palavras. Nos comentários e `print` das células de código também. Corre a partir da raiz do repositório:
+O script abaixo é só de leitura. Lista, por célula, as palavras da secção 5, os travessões e os caracteres fora do teclado, as
+linhas com mais de 2 negritos e as frases com mais de 40 palavras. Nos comentários e `print` das células de código também. Corre a partir da raiz do repositório:
 
 ```python
 import json, re
@@ -133,6 +157,9 @@ for i, c in enumerate(nb["cells"]):
     avisos = [f"'{p}'" for p in PROIBIDAS if p in texto.lower()]
     if "—" in texto:
         avisos.append(f"travessão x{texto.count(chr(0x2014))}")
+    fora = [ch for ch in "−–≤≥÷…" if ch in src] if c["cell_type"] == "markdown" else []
+    if fora:
+        avisos.append("caracteres fora do teclado: " + " ".join(fora))
     for linha in texto.splitlines():
         if linha.lstrip().startswith("#") and c["cell_type"] == "markdown":
             continue                                   # títulos
@@ -140,7 +167,7 @@ for i, c in enumerate(nb["cells"]):
         if corpo.count("**") // 2 > 2:
             avisos.append(f"{corpo.count('**') // 2} negritos numa linha: {corpo.strip()[:50]}…")
         for f in re.split(r"(?<=[.!?;])\s+", linha.strip()):
-            if len(f.split()) > 30:
+            if len(f.split()) > 40:
                 avisos.append(f"frase longa ({len(f.split())} palavras): {f[:50]}…")
     if avisos:
         print(f"célula {i} ({c['cell_type']}):", *avisos, sep="\n  ")
@@ -152,6 +179,14 @@ a ser lida à mão.
 **Primeira execução (13-11-2026):** nenhuma palavra da secção 5; travessões em 10 células e frases longas sobretudo nas entradas
 das secções 5 e 6 e nas conclusões. **Depois da revisão (13-11-2026):** só fica a linha das barras A, B e C da célula 62, que são rótulos
 e não ênfase (falso positivo aceite).
+**Entradas das secções 1 a 5 (13-11-2026):** reescritas em modo apresentação: cada uma abre com o papel da camada, o que recebe
+e o que entrega, e o detalhe vem depois. Na célula 4, os símbolos +/−/? da hipótese passam a "Sobe com o Brent", "Desce com o
+Brent" e "Ambíguo". O script não dá avisos nas células 4, 9, 17, 23, 29, 33 e 37.
+**Revisão pelas páginas da Wikipedia (13-11-2026):** o que sobrava era de estrutura e de tipografia. Listas com rótulo a negrito:
+de 69 itens para 2. Negritos: de 200 para 82. Sinal menos, traço curto e linhas `---` retirados do markdown. Notas *Como ler* em
+parágrafo, secção 7 mais curta (os números já dados na secção 6 não se repetem todos), frases de tamanho mais variado
+(o limite passou de 30 para 40 palavras). Nos comentários de código saíram as referências a `docs/`, as instruções ao leitor e os
+passos numerados. O script não dá avisos.
 
 ## 10. Regra obrigatória
 
