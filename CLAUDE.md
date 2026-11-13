@@ -29,6 +29,7 @@ resultados) está no [README.md](README.md). Não o repitas aqui.
 | Citar ou rever números e conclusões | [docs/CONCLUSOES.md](docs/CONCLUSOES.md) |
 | Ver o que falta fazer e os prazos | [docs/ESTADO.md](docs/ESTADO.md) |
 | Correr ou testar fora do Databricks (`requirements-local.txt`, `.gitignore`) | [docs/DESENVOLVIMENTO.md](docs/DESENVOLVIMENTO.md) |
+| Mexer em cores, fontes ou no aspeto de gráficos, tabelas formatadas ou diagramas | [docs/ESTILO_VISUAL.md](docs/ESTILO_VISUAL.md) |
 | Rever a teoria da cadeira (lakehouse, Spark, Delta) | [docs/MANUAL_ABD.md](docs/MANUAL_ABD.md) (grande: procura por secção, não o leias todo) |
 | Confirmar o formato real de uma fonte | `dados_fallback/` (cópia antiga das APIs, com o formato exato; só usada quando a API falha) |
 
@@ -84,6 +85,9 @@ Na dúvida entre duas soluções, escolhe a que fica mais perto deste estilo.
 - A análise por empresa é **mensal**, com o fecho ajustado. O ML usa uma divisão **temporal** (treino até 2023).
 
 **Visualizações:** só as de matplotlib aparecem no HTML exportado. Os gráficos do `display()` dependem de configuração na interface.
+- **Todo o gráfico, tabela formatada ou diagrama, novo ou alterado, segue [docs/ESTILO_VISUAL.md](docs/ESTILO_VISUAL.md)**
+  (paleta e tipografia da NOVA IMS). Lê-o antes de mexer num gráfico. As cores vêm das constantes definidas lá, nunca de hex soltos;
+  uma entidade nova recebe primeiro uma cor nesse documento.
 
 ## 5. Manter a documentação sincronizada
 
@@ -96,6 +100,7 @@ Quando mudares alguma coisa no notebook, atualiza o documento do tema:
 | Batches, watermark, `MERGE`, `RESET`, otimização | `docs/ARQUITETURA.md` |
 | Regras estatísticas, veredicto, setores | `docs/METODOLOGIA.md` e rever `docs/CONCLUSOES.md` |
 | Queries, gráficos, ML, dashboard | `docs/ANALISES.md` |
+| Cores, fontes ou aspeto de um gráfico/tabela, nova entidade com cor | `docs/ESTILO_VISUAL.md` |
 | Números (nova execução) | `docs/CONCLUSOES.md` **e** "Principais resultados" no `README.md` (é o único sítio onde os números se repetem de propósito) |
 | Passos de execução no Databricks | "Como executar" no `README.md` |
 | Novo ficheiro ou pasta na raiz | a árvore do `README.md` e a tabela da secção 2 deste ficheiro |

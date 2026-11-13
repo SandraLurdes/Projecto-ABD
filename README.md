@@ -45,6 +45,7 @@ Projecto-ABD/
 │   ├── TABELAS.md                 # dicionário de dados das tabelas (controlo, bronze, silver, gold) e linhagem
 │   ├── METODOLOGIA.md             # hipótese, empresas e setores, regras estatísticas, limitações
 │   ├── ANALISES.md                # queries, gráficos, dashboard e modelos de ML
+│   ├── ESTILO_VISUAL.md           # paleta, tipografia e aspeto NOVA IMS dos gráficos e tabelas
 │   ├── CONCLUSOES.md              # resultados e conclusões
 │   ├── ESTADO.md                  # checklist e prazos
 │   ├── DESENVOLVIMENTO.md         # correr e testar fora do Databricks
